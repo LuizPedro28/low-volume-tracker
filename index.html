@@ -1,0 +1,346 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0d11"><title>Low Volume Tracker</title>
+<style>
+:root{
+  --accent:#8b5cf6;
+  --accent2:#a78bfa;
+  --bg:#090b10;
+  --surface:#11151d;
+  --surface2:#171c26;
+  --surface3:#1d2430;
+  --text:#f7f8fc;
+  --muted:#9ca7b7;
+  --border:#293140;
+  --success:#31d17c;
+  --danger:#ef5264;
+  --shadow:0 16px 45px rgba(0,0,0,.22);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:
+  radial-gradient(circle at 15% -10%,color-mix(in srgb,var(--accent) 20%,transparent),transparent 35%),
+  radial-gradient(circle at 90% 0%,rgba(38,211,155,.08),transparent 28%),
+  var(--bg);color:var(--text);
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+body.light{--bg:#f4f6fa;--surface:#fff;--surface2:#f0f2f7;--surface3:#e7eaf1;--text:#151922;--muted:#687386;--border:#d8dee8}
+.app{max-width:1040px;margin:auto;padding-bottom:50px}
+.top{
+  position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(18px);padding:15px 18px;border-bottom:1px solid var(--border);z-index:10
+}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand-title{font-size:17px;font-weight:900;letter-spacing:.5px}
+.brand-title span{color:var(--accent2)}
+.tiny{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+h1,h2,h3,p{margin:0 0 9px}
+h1{font-size:clamp(24px,5vw,34px);line-height:1.05}
+h2{font-size:20px}
+.muted{color:var(--muted)}
+.tabs,.days{display:flex;gap:7px;overflow:auto;margin-top:14px;padding-bottom:2px}
+.tabs button,.days button,button{
+  border:1px solid var(--border);border-radius:11px;padding:10px 13px;
+  background:var(--surface2);color:var(--text);cursor:pointer;transition:.18s;
+}
+button:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--accent) 55%,var(--border))}
+.tabs button.active,.days button.active,button.primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:white;
+  box-shadow:0 8px 24px color-mix(in srgb,var(--accent) 25%,transparent)
+}
+main{padding:20px 18px}
+.view{display:none}.view.active{display:block}
+.hero{
+  position:relative;overflow:hidden;background:
+  linear-gradient(135deg,color-mix(in srgb,var(--accent) 24%,var(--surface)) 0%,var(--surface) 65%);
+  border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border));
+  border-radius:22px;padding:22px;margin-bottom:14px;box-shadow:var(--shadow)
+}
+.hero:after{
+  content:"";position:absolute;width:170px;height:170px;border-radius:50%;
+  right:-55px;top:-75px;background:color-mix(in srgb,var(--accent) 18%,transparent);filter:blur(2px)
+}
+.hero>*{position:relative;z-index:1}
+.hero-icon{font-size:34px;margin-bottom:5px}
+.card,.ex{
+  background:color-mix(in srgb,var(--surface) 94%,transparent);
+  border:1px solid var(--border);border-radius:16px;padding:15px;margin-bottom:11px;
+  box-shadow:0 7px 24px rgba(0,0,0,.08)
+}
+.ex{padding:16px}
+.exercise-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.exercise-name{font-size:16px;font-weight:800}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;background:var(--surface3);color:var(--muted);font-size:10px;white-space:nowrap}
+.row{display:flex;gap:8px;align-items:center}.between{justify-content:space-between}.wrap{flex-wrap:wrap}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.actions button{font-size:12px}
+.sets{margin-top:8px}.set{
+  display:grid;grid-template-columns:28px 1fr 1fr 58px 40px;gap:6px;margin:6px 0;align-items:center
+}
+.head{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.set input,select,input{
+  width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  border-radius:9px;padding:9px;outline:none
+}
+.set input:focus,select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+.ok.on{background:var(--success);color:#07130c;border-color:transparent}
+.green{background:var(--success);color:#07130c;border-color:transparent}
+.danger{background:color-mix(in srgb,var(--danger) 18%,var(--surface2));color:#ff9aaa}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--surface2);border-radius:12px;padding:13px}
+.empty{text-align:center;padding:30px;color:var(--muted)}
+.library-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.lib-card{overflow:hidden;padding:0}
+.lib-card-body{padding:14px}
+.exercise-photo,.guide-photo{
+  width:100%;display:block;object-fit:cover;background:var(--surface2)
+}
+.exercise-photo{height:155px}.guide-photo{height:270px;border-radius:13px;margin:10px 0}
+.photo-source{font-size:10px;color:var(--muted);margin-top:5px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.76);backdrop-filter:blur(7px);z-index:20;padding:14px;overflow:auto}
+.modal.open{display:block}
+.modalbox{max-width:760px;margin:25px auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:17px;box-shadow:var(--shadow)}
+.edit{border-top:1px solid var(--border);padding:12px 0}.editgrid{display:grid;grid-template-columns:1fr 75px auto;gap:6px}
+.demo{height:170px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin:10px 0}
+.theme-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.theme{
+  min-height:54px;border-radius:12px;border:2px solid var(--border);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px
+}
+.theme.active{border-color:var(--text);box-shadow:0 0 0 2px var(--accent)}
+.theme-purple{background:linear-gradient(135deg,#6d28d9,#a78bfa)}
+.theme-red{background:linear-gradient(135deg,#b91c1c,#fb7185)}
+.theme-blue{background:linear-gradient(135deg,#1d4ed8,#60a5fa)}
+.theme-green{background:linear-gradient(135deg,#047857,#34d399)}
+.theme-orange{background:linear-gradient(135deg,#c2410c,#fb923c)}
+.info-list{display:grid;gap:8px;margin-top:10px}
+.info-item{padding:11px 12px;background:var(--surface2);border-radius:11px;border:1px solid var(--border)}
+.section-title{margin:18px 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+@media(max-width:700px){
+  .library-grid{grid-template-columns:1fr}.theme-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:550px){
+  .grid{grid-template-columns:1fr}
+  .set{grid-template-columns:24px 1fr 1fr 52px 36px}
+  main{padding:14px 12px}.top{padding:12px}
+  .hero{padding:18px}
+  .exercise-top{display:block}.badge{margin-top:7px}
+}
+</style>
+</head><body><div class="app"><header class="top"><div class="brand"><div><div class="brand-title">LOW VOLUME <span>TRACKER</span></div><div class="tiny">Seu treino, suas cargas, sua evolução</div></div><button onclick="tab('config',document.querySelectorAll('.tabs button')[3])">⚙️</button></div><div class="tabs"><button class="active" onclick="tab('treino',this)">Treino</button><button onclick="tab('historico',this)">Histórico</button><button onclick="tab('exercicios',this)">Exercícios</button><button onclick="tab('config',this)">Config.</button></div></header><main>
+<section id="treino" class="view active"><div class="days" id="days"></div><div class="hero"><div class="tiny">Sessão</div><h1 id="title"></h1><p id="sub" class="muted"></p><div class="row wrap"><button class="primary" onclick="edit()">✏️ Editar treino</button><button onclick="addEx()">＋ Exercício</button><button class="green" onclick="finish()">✓ Finalizar</button></div></div><div class="card"><b>Aquecimento • Feeder • PAP/PAPE</b><p class="muted">Aquecimento: 2–5 min + preparação específica. Feeder: 1–3 séries leves sem fadiga. PAP/PAPE é opcional e deve ser usado sem prejudicar a série efetiva. Séries efetivas: normalmente RIR 0–2.</p></div><div id="list"></div></section>
+<section id="historico" class="view"><div class="hero"><h1>Histórico</h1><p class="muted">Sessões salvas neste aparelho.</p></div><div id="hist"></div></section>
+<section id="exercicios" class="view"><div class="hero"><h1>Biblioteca</h1><p class="muted">Execução e variações.</p></div><input id="search" placeholder="Buscar..." oninput="library()"><div id="libCount" class="muted" style="margin:8px 0 12px"></div><div id="lib"></div></section>
+<section id="config" class="view">
+  <div class="hero"><div class="hero-icon">⚙️</div><h1>Configurações</h1><p class="muted">Personalize a aparência e o jeito que o tracker registra seu treino.</p></div>
+  <div class="card">
+    <h2>🎨 Tema</h2>
+    <p class="muted">Escolha uma cor para deixar o tracker com a sua cara.</p>
+    <div class="theme-grid">
+      <button class="theme theme-purple" onclick="setTheme('purple')">Roxo</button>
+      <button class="theme theme-red" onclick="setTheme('red')">Vermelho</button>
+      <button class="theme theme-blue" onclick="setTheme('blue')">Azul</button>
+      <button class="theme theme-green" onclick="setTheme('green')">Verde</button>
+      <button class="theme theme-orange" onclick="setTheme('orange')">Laranja</button>
+    </div>
+    <div class="actions"><button onclick="toggleLight()">☀️ Alternar claro/escuro</button></div>
+  </div>
+  <div class="card">
+    <h2>👤 Preferências</h2>
+    <div class="grid">
+      <label>Nome<input id="name" placeholder="Ex.: Luiz"></label>
+      <label>Unidade<select id="unit"><option>kg</option><option>lb</option></select></label>
+    </div>
+    <label style="display:block;margin-top:10px">RIR padrão<input id="rir" type="number" min="0" max="5"></label>
+    <div class="actions"><button class="green" onclick="cfg()">💾 Salvar preferências</button><button class="danger" onclick="reset()">🗑 Apagar dados</button></div>
+  </div>
+  <div class="card">
+    <h2>🧠 Como a lógica funciona?</h2>
+    <div class="info-list">
+      <div class="info-item"><b>1. Plano</b><br><span class="muted">Cada dia possui uma lista de exercícios e uma quantidade de séries. Você pode trocar exercícios, adicionar novos ou alterar o número de séries.</span></div>
+      <div class="info-item"><b>2. Registro</b><br><span class="muted">Ao preencher carga, repetições e RIR, o sistema guarda o rascunho no navegador usando localStorage. Você não precisa de banco de dados para usar.</span></div>
+      <div class="info-item"><b>3. Finalização</b><br><span class="muted">Ao finalizar, somente as séries preenchidas ou marcadas como concluídas entram no histórico. O rascunho daquele dia é limpo para o próximo treino.</span></div>
+      <div class="info-item"><b>4. Biblioteca</b><br><span class="muted">A biblioteca usa os exercícios cadastrados no JavaScript. Cada exercício possui grupo muscular, faixa de repetições, descrição detalhada de execução e duas opções de variação/substituição.</span></div>
+      <div class="info-item"><b>5. Fotos</b><br><span class="muted">As páginas de execução usam imagens externas da internet como referência visual. Se uma imagem não carregar, o texto de execução continua disponível.</span></div>
+    </div>
+  </div>
+</section>
+</main></div>
+<div class="modal" id="editModal"><div class="modalbox"><div class="row between"><h2>Editar treino</h2><button onclick="closeM('editModal')">✕</button></div><p class="muted">Troque exercícios e quantidade de séries. Máximo 8 séries por exercício.</p><div id="editList"></div><button class="primary" style="width:100%" onclick="addFromEdit()">＋ Adicionar exercício</button><button class="green" style="width:100%;margin-top:7px" onclick="saveEdit()">Salvar alterações</button></div></div>
+<div class="modal" id="guideModal"><div class="modalbox"><div class="row between"><h2 id="gt"></h2><button onclick="closeM('guideModal')">✕</button></div><div id="gb"></div></div></div>
+<script>
+const LIB=[
+["Supino reto com barra","Peito • Tríceps • Deltoide anterior","5–8","Deite com os olhos aproximadamente abaixo da barra, firme as escápulas no banco e mantenha os pés estáveis. Retire a barra com controle, desça em direção à parte média/baixa do peito mantendo os antebraços próximos da vertical e pressione para cima sem perder a posição dos ombros.","Supino com halteres","Chest press"],
+["Supino reto com halteres","Peito • Tríceps • Deltoide anterior","6–10","Comece com os halteres sobre o peito, estabilize as escápulas e mantenha os pés firmes. Desça os pesos de forma controlada até uma amplitude confortável, mantendo os cotovelos em uma posição natural, e suba aproximando os halteres sem bater um no outro.","Supino com barra","Máquina chest press"],
+["Supino inclinado com barra","Peito superior • Tríceps • Deltoide anterior","6–10","Ajuste o banco em uma inclinação moderada. Mantenha glúteos e costas apoiados, escápulas estáveis e desça a barra em direção à região superior do peito. Empurre a barra mantendo a trajetória consistente e sem elevar os ombros.","Supino inclinado com halteres","Máquina inclinada"],
+["Supino inclinado com halteres","Peito superior • Tríceps • Deltoide anterior","8–12","Posicione os halteres sobre o peito e mantenha o banco firme. Desça os pesos lentamente para as laterais do tórax, deixando os cotovelos acompanharem uma trajetória confortável. Suba de forma controlada sem perder o contato das costas com o banco.","Supino inclinado com barra","Chest press inclinado"],
+["Chest press máquina","Peito • Tríceps • Deltoide anterior","8–12","Ajuste o banco para que as alças fiquem aproximadamente na altura do meio do peito. Mantenha as costas apoiadas, segure as alças e empurre sem tirar os ombros do encosto. Retorne lentamente até sentir alongamento controlado no peito.","Supino reto","Chest press convergente"],
+["Chest press convergente","Peito • Tríceps • Deltoide anterior","8–12","Sente-se com o encosto bem ajustado e mantenha os pés firmes. Empurre as alças para frente enquanto mantém o tronco estável. Na volta, permita que os braços retornem de maneira controlada, sem deixar os pesos baterem.","Chest press máquina","Supino com halteres"],
+["Crossover alto para baixo","Peito","10–15","Fique entre as polias com os cabos posicionados acima dos ombros. Dê um passo à frente, mantenha o tronco estável e conduza as mãos em arco para baixo e para frente, aproximando-as à frente do corpo. Retorne lentamente mantendo leve flexão dos cotovelos.","Crossover médio","Crucifixo máquina"],
+["Crossover médio","Peito","10–15","Posicione as polias aproximadamente na altura do peito. Mantenha o peito aberto e os cotovelos levemente flexionados. Traga as mãos para a frente até aproximá-las, contraindo o peitoral, e volte lentamente sem deixar o ombro perder o controle.","Crossover alto","Crucifixo com halteres"],
+["Crucifixo máquina","Peito","10–15","Ajuste o banco para que os braços fiquem alinhados com o peito. Segure as alças, mantenha o tórax apoiado e aproxime os braços à frente do corpo em um arco confortável. Volte lentamente, evitando transformar o movimento em um empurrão.","Crossover","Crucifixo com halteres"],
+["Flexão de braço","Peito • Tríceps • Ombros","8–20","Comece em prancha com mãos apoiadas aproximadamente abaixo ou um pouco além dos ombros. Mantenha cabeça, tronco e quadril alinhados. Flexione os cotovelos controlando a descida e empurre o chão até retornar sem deixar o quadril cair.","Flexão inclinada","Supino"],
+["Flexão inclinada","Peito • Tríceps • Ombros","10–20","Apoie as mãos em uma superfície estável e mais alta que os pés. Mantenha o corpo alinhado e desça o peito em direção ao apoio. Empurre o apoio até estender os braços, usando uma amplitude que permaneça confortável.","Flexão de joelhos","Flexão tradicional"],
+["Paralelas assistidas","Peito • Tríceps • Ombros","6–12","Ajuste a assistência para conseguir controlar todo o movimento. Comece com o corpo estável, desça dobrando os cotovelos sem deixar os ombros despencarem e depois empurre as barras para retornar. Ajuste a inclinação do tronco conforme o foco desejado.","Mergulho em máquina","Tríceps na máquina"],
+["Mergulho em máquina","Tríceps • Peito","8–12","Sente-se e ajuste o equipamento para que os braços iniciem em uma posição confortável. Desça o movimento sob controle e empurre as alças até contrair o tríceps. Evite travar agressivamente os cotovelos no final.","Paralelas assistidas","Tríceps corda"],
+["Pullover com halter","Peito • Costas","8–12","Deite no banco com um halter seguro pelas duas mãos. Mantenha os braços em uma posição levemente flexionada e leve o peso para trás da cabeça até uma amplitude controlada. Retorne usando o peito e a musculatura das costas sem exagerar na amplitude do ombro.","Pullover na máquina","Pullover no cabo"],
+["Pullover no cabo","Dorsais • Peito","10–15","Posicione-se de frente para a polia alta e segure a barra ou corda com os braços estendidos. Com leve flexão dos cotovelos, puxe o implemento em direção às coxas mantendo o tronco estável. Retorne lentamente deixando os dorsais alongarem.","Pullover com halter","Puxada alta"],
+["Barra fixa pronada","Costas • Bíceps • Dorsais","5–10","Segure a barra com pegada pronada e comece com o corpo estável. Antes de puxar, organize as escápulas e conduza os cotovelos para baixo. Suba até uma altura confortável sem projetar o pescoço e desça controlando todo o movimento.","Barra fixa assistida","Puxada alta pronada"],
+["Barra fixa supinada","Costas • Bíceps","6–10","Use pegada supinada aproximadamente na largura dos ombros. Mantenha o tronco controlado e puxe os cotovelos para baixo e para trás, levando o peito em direção à barra. Desça devagar até uma amplitude que consiga controlar.","Chin-up assistido","Rosca direta"],
+["Barra fixa neutra","Costas • Bíceps • Dorsais","6–10","Segure as alças neutras e mantenha o corpo firme. Inicie puxando as escápulas e depois conduza os cotovelos para baixo. Evite balançar o corpo e controle a descida para aproveitar a fase excêntrica.","Puxada neutra","Barra fixa assistida"],
+["Puxada alta pronada","Dorsais • Bíceps","6–10","Sente-se com as pernas firmes e segure a barra em uma pegada pronada. Incline o tronco apenas o necessário para ficar confortável, puxe a barra em direção à parte superior do peito e pense em levar os cotovelos para baixo. Retorne lentamente sem soltar a carga de uma vez.","Puxada neutra","Barra fixa"],
+["Puxada alta neutra","Dorsais • Bíceps","8–12","Use uma pegada neutra e mantenha o peito aberto. Puxe as alças em direção à parte superior do peito conduzindo os cotovelos para baixo. Faça a volta devagar até sentir alongamento nos dorsais sem perder a postura.","Puxada pronada","Barra fixa neutra"],
+["Puxada alta supinada","Dorsais • Bíceps","8–12","Segure a barra com as palmas voltadas para você. Mantenha o tronco firme e puxe a barra para a região superior do peito, evitando transformar o movimento em uma remada com balanço. Controle a subida da barra até alongar os dorsais.","Puxada neutra","Barra fixa supinada"],
+["Remada baixa fechada","Costas • Dorsais • Bíceps","8–12","Sente-se com os pés apoiados e segure a manopla. Comece com os braços estendidos e o tronco firme. Puxe a manopla em direção ao abdômen enquanto conduz os cotovelos para trás. Retorne devagar sem arredondar excessivamente a coluna.","Remada baixa aberta","Remada máquina"],
+["Remada baixa aberta","Costas • Romboides • Deltoide posterior","8–12","Use uma pegada mais aberta e mantenha o peito aberto. Puxe a manopla em direção à parte alta do abdômen ou ao esterno inferior, aproximando as escápulas sem exagerar. Retorne controlando o alongamento das costas.","Remada baixa fechada","Remada apoiada"],
+["Remada unilateral com halter","Costas • Dorsais • Bíceps","8–12","Apoie uma mão e um joelho no banco, mantendo a coluna neutra. Deixe o halter descer sob controle e depois puxe o cotovelo em direção ao quadril, evitando girar o tronco. Faça todas as repetições de um lado antes de trocar.","Remada unilateral no cabo","Remada máquina"],
+["Remada unilateral no cabo","Costas • Dorsais • Bíceps","8–12","Fique de frente para a polia e mantenha o tronco estável. Puxe a manopla conduzindo o cotovelo para trás e ligeiramente para o quadril. Na volta, deixe o braço avançar de maneira controlada sem perder a posição do tronco.","Remada unilateral com halter","Remada baixa"],
+["Remada apoiada no banco","Costas • Romboides • Dorsais","8–12","Apoie o peito no banco inclinado e deixe os braços descerem com os pesos. Puxe os cotovelos para trás mantendo o tórax apoiado, evitando usar balanço do corpo. Desça lentamente até sentir as costas alongarem.","Remada máquina","Remada unilateral"],
+["Remada cavalinho","Costas • Dorsais • Trapézio","6–10","Posicione-se com os pés firmes e o tronco inclinado de maneira estável. Segure a barra ou pegador e puxe em direção ao abdômen, mantendo a coluna neutra. Evite transformar a repetição em um movimento de extensão lombar.","Remada apoiada","Remada baixa"],
+["Remada máquina articulada","Costas • Dorsais • Romboides","8–12","Ajuste o assento para que as alças fiquem em uma altura confortável. Apoie o peito quando houver suporte e puxe as alças conduzindo os cotovelos para trás. Retorne lentamente sem deixar as placas baterem.","Remada apoiada","Remada baixa"],
+["Encolhimento com halteres","Trapézio","10–15","Fique em pé com os halteres ao lado do corpo. Eleve os ombros diretamente para cima, sem fazer círculos amplos, e segure brevemente a contração. Desça de forma controlada até a posição inicial.","Encolhimento com barra","Encolhimento na máquina"],
+["Face pull","Deltoide posterior • Trapézio • Costas","10–15","Ajuste a corda na altura do rosto. Puxe a corda em direção ao rosto enquanto separa as mãos e mantém os cotovelos relativamente altos. Concentre-se em controlar a escápula e o ombro, sem usar o corpo para puxar a carga.","Crucifixo inverso","Face pull unilateral"],
+["Crucifixo inverso com halteres","Deltoide posterior • Costas","10–15","Incline o tronco ou use um banco inclinado para reduzir o balanço. Com os braços levemente flexionados, abra os halteres para os lados até alinhar aproximadamente com o tronco. Retorne lentamente mantendo a tensão nos deltoides posteriores.","Crucifixo inverso na máquina","Face pull"],
+["Crucifixo inverso máquina","Deltoide posterior • Romboides","10–15","Ajuste o assento e segure as alças com o peito apoiado. Abra os braços para trás usando principalmente a região posterior dos ombros. Evite elevar os ombros em direção às orelhas e controle o retorno.","Crucifixo inverso com halteres","Face pull"],
+["Desenvolvimento com halteres","Ombros • Tríceps","6–10","Sente-se com o encosto firme e os pés apoiados. Posicione os halteres próximos à altura dos ombros, pressione para cima mantendo o tronco estável e retorne lentamente. Não force uma amplitude que cause desconforto nos ombros.","Desenvolvimento máquina","Arnold press"],
+["Desenvolvimento máquina","Ombros • Tríceps","8–12","Ajuste o assento para que as alças iniciem aproximadamente na altura dos ombros. Pressione para cima mantendo as costas apoiadas e controle a descida até uma posição confortável.","Desenvolvimento com halteres","Arnold press"],
+["Arnold press","Ombros • Tríceps","8–12","Comece com os halteres à frente dos ombros e palmas voltadas para você. Conforme pressiona, gire as mãos para uma posição neutra ou pronada no topo, dentro da amplitude confortável. Inverta o movimento de forma controlada.","Desenvolvimento com halteres","Desenvolvimento máquina"],
+["Elevação lateral com halteres","Deltoide lateral","10–15","Fique em pé com os halteres ao lado do corpo. Eleve os braços lateralmente com leve flexão dos cotovelos, pensando em afastar as mãos para os lados. Pare em uma altura confortável e desça lentamente sem balançar o tronco.","Elevação lateral no cabo","Máquina lateral"],
+["Elevação lateral no cabo","Deltoide lateral","10–15","Posicione-se de lado para a polia baixa e segure a manopla com a mão oposta ou do mesmo lado conforme o equipamento. Eleve o braço lateralmente mantendo o tronco estável e desça devagar para preservar a tensão no deltoide.","Elevação lateral com halteres","Máquina lateral"],
+["Elevação lateral máquina","Deltoide lateral","10–15","Ajuste o assento e posicione os braços contra os apoios. Eleve os braços para os lados de maneira controlada, evitando impulsos. Retorne lentamente até a posição inicial.","Elevação lateral com halteres","Elevação lateral no cabo"],
+["Elevação frontal com halteres","Deltoide anterior","10–15","Fique em pé segurando os halteres à frente das coxas. Eleve os braços à frente até uma altura confortável, mantendo o tronco sem balanço. Desça lentamente e alterne ou faça as duas mãos juntas.","Elevação frontal no cabo","Desenvolvimento"],
+["Elevação frontal no cabo","Deltoide anterior","10–15","Segure a manopla ou barra da polia baixa e mantenha o corpo estável. Eleve o braço à frente do corpo até uma amplitude confortável, evitando inclinar o tronco para criar impulso.","Elevação frontal com halteres","Desenvolvimento"],
+["Rosca direta com barra","Bíceps • Braquial","8–12","Fique em pé com a barra próxima às coxas e cotovelos ao lado do corpo. Flexione os cotovelos levando a barra para cima sem jogar o tronco para trás. Contraia o bíceps no alto e desça lentamente até quase estender os braços.","Rosca Scott","Rosca no cabo"],
+["Rosca alternada com halteres","Bíceps • Braquial","8–12","Segure um halter em cada mão e mantenha os cotovelos próximos ao corpo. Flexione um braço por vez, girando a palma para cima conforme sobe se isso for confortável. Controle completamente a descida antes da próxima repetição.","Rosca simultânea","Rosca no cabo"],
+["Rosca martelo","Bíceps • Braquial • Braquiorradial","8–12","Mantenha as palmas voltadas uma para a outra durante todo o movimento. Flexione os cotovelos sem deslocá-los para a frente e leve os halteres para cima. Desça lentamente, mantendo a pegada neutra.","Rosca martelo na corda","Rosca alternada"],
+["Rosca martelo na corda","Bíceps • Braquial","10–15","Use uma polia baixa com corda e mantenha as palmas voltadas uma para a outra. Flexione os cotovelos levando a corda para cima e mantenha os braços superiores relativamente estáveis. Retorne devagar.","Rosca martelo","Rosca no cabo"],
+["Rosca Scott","Bíceps","8–12","Apoie a parte posterior dos braços no banco Scott e segure a barra ou halteres. Desça o peso lentamente até uma extensão confortável dos cotovelos e depois flexione os braços sem tirar os braços do apoio.","Rosca direta","Rosca máquina"],
+["Rosca concentrada","Bíceps","10–15","Sente-se e apoie a parte posterior do braço contra a parte interna da coxa. Flexione o cotovelo levando o halter em direção ao ombro, mantendo o ombro estável. Desça lentamente sem deixar o peso cair.","Rosca Scott","Rosca alternada"],
+["Rosca no cabo baixa","Bíceps","10–15","Fique de frente para a polia baixa com os cotovelos próximos ao corpo. Flexione os braços mantendo tensão constante no cabo e retorne devagar até quase estender os cotovelos.","Rosca direta","Rosca unilateral no cabo"],
+["Rosca unilateral no cabo","Bíceps","10–15","Segure a manopla com uma mão e estabilize o tronco. Flexione o cotovelo mantendo o braço superior parado e depois retorne de forma lenta. Evite girar o corpo para ajudar na subida.","Rosca alternada","Rosca concentrada"],
+["Tríceps corda na polia","Tríceps","10–15","Fique de frente para a polia alta, segure a corda e mantenha os cotovelos próximos ao corpo. Estenda os cotovelos para baixo sem movimentar excessivamente os ombros. Na volta, controle o peso até sentir alongamento do tríceps.","Tríceps barra","Tríceps unilateral"],
+["Tríceps barra na polia","Tríceps","8–12","Segure a barra da polia alta com os cotovelos próximos ao tronco. Empurre a barra para baixo até estender os cotovelos, mantendo o ombro relativamente parado. Retorne lentamente sem deixar a carga puxar o corpo para frente.","Tríceps corda","Tríceps máquina"],
+["Tríceps unilateral na polia","Tríceps","10–15","Segure uma manopla e mantenha o cotovelo ao lado do corpo. Estenda o braço para baixo, concentrando o movimento na articulação do cotovelo. Retorne lentamente sem girar o tronco.","Tríceps corda","Tríceps barra"],
+["Tríceps francês com halter","Tríceps","8–12","Sente-se ou deite-se e segure um halter com as duas mãos. Flexione os cotovelos deixando o peso descer atrás da cabeça em uma amplitude confortável. Estenda os cotovelos para retornar, evitando abrir excessivamente os braços.","Tríceps acima da cabeça","Tríceps testa"],
+["Tríceps acima da cabeça na corda","Tríceps","10–15","Fique de costas para a polia e leve a corda para trás da cabeça. Mantenha os cotovelos apontando para frente e estenda os braços até contrair o tríceps. Volte lentamente até sentir alongamento sem perder a posição dos cotovelos.","Tríceps francês","Tríceps unilateral"],
+["Tríceps testa com barra","Tríceps","8–12","Deite no banco e segure a barra acima do peito. Mantendo os braços superiores relativamente estáveis, flexione os cotovelos levando a barra em direção à testa ou ligeiramente atrás dela. Estenda os cotovelos para retornar sem usar impulso.","Tríceps francês","Tríceps corda"],
+["Tríceps máquina","Tríceps","8–12","Ajuste o assento e mantenha os braços apoiados conforme o equipamento. Estenda os cotovelos contra a resistência até contrair o tríceps e retorne lentamente. Evite levantar os ombros para ajudar no movimento.","Tríceps corda","Mergulho assistido"],
+["Agachamento livre com barra","Quadríceps • Glúteos • Posterior • Core","5–8","Posicione a barra de maneira estável sobre a região adequada das costas e firme os pés no chão. Respire e estabilize o tronco antes de iniciar. Desça flexionando quadris e joelhos enquanto os joelhos acompanham a direção dos pés. Suba empurrando o chão e mantendo o tronco firme.","Hack squat","Leg press"],
+["Agachamento frontal","Quadríceps • Glúteos • Core","6–10","Posicione a barra à frente dos ombros e mantenha os cotovelos altos. Desça mantendo o tronco relativamente vertical e os joelhos acompanhando os pés. Suba sem deixar os cotovelos despencarem ou o tronco colapsar.","Goblet squat","Hack squat"],
+["Hack squat","Quadríceps • Glúteos","6–10","Ajuste os pés e encoste costas e quadril no apoio. Desça dobrando joelhos e quadris até uma amplitude que mantenha a lombar estável. Empurre a plataforma sem deixar os joelhos perderem alinhamento com os pés.","Agachamento","Leg press"],
+["Leg press 45°","Quadríceps • Glúteos • Posterior","8–12","Apoie completamente costas e quadril no encosto. Posicione os pés de forma estável e desça a plataforma lentamente até uma amplitude em que a lombar permaneça apoiada. Empurre a plataforma sem deixar os joelhos colapsarem para dentro.","Hack squat","Agachamento"],
+["Leg press unilateral","Quadríceps • Glúteos","8–12","Posicione um pé no centro da plataforma e mantenha o quadril e as costas apoiados. Desça lentamente controlando o joelho e depois empurre a plataforma até retornar. Use uma carga que permita estabilidade durante todo o movimento.","Leg press 45°","Step-up"],
+["Agachamento goblet","Quadríceps • Glúteos","8–12","Segure um halter ou kettlebell junto ao peito. Mantenha o tronco firme e desça flexionando quadris e joelhos, permitindo que os joelhos acompanhem os pés. Suba empurrando o chão e mantendo o peso próximo ao corpo.","Agachamento frontal","Leg press"],
+["Afundo para frente","Quadríceps • Glúteos","8–12","Dê um passo à frente e desça o corpo controladamente, flexionando os dois joelhos. Mantenha o pé da frente firme e o tronco estável. Empurre o chão para retornar à posição inicial e alterne as pernas.","Afundo reverso","Afundo caminhando"],
+["Afundo reverso","Glúteos • Quadríceps","8–12","Dê um passo para trás e desça de maneira controlada, mantendo o pé da frente estável. O joelho da frente acompanha a direção dos dedos e o tronco permanece firme. Empurre o chão com a perna da frente para voltar.","Afundo para frente","Afundo búlgaro"],
+["Afundo búlgaro","Quadríceps • Glúteos","8–12","Apoie o peito do pé traseiro em um banco e deixe a perna da frente responsável pela maior parte do trabalho. Desça verticalmente com controle, mantendo o joelho acompanhando o pé. Suba empurrando o chão com a perna da frente.","Afundo reverso","Leg press unilateral"],
+["Passada caminhando","Quadríceps • Glúteos","8–12","Caminhe dando passos suficientemente longos para conseguir descer com controle. Flexione os joelhos e quadris, mantenha o tronco firme e empurre o chão para passar para a próxima repetição.","Afundo reverso","Afundo para frente"],
+["Step-up no banco","Quadríceps • Glúteos","8–12","Coloque um pé sobre uma plataforma estável. Incline-se apenas o necessário e empurre principalmente com a perna que está sobre a plataforma para subir. Desça controlando o corpo e evite usar impulso excessivo da perna de trás.","Afundo búlgaro","Leg press unilateral"],
+["Agachamento no smith","Quadríceps • Glúteos","6–10","Posicione-se sob a barra do smith com os pés firmes e uma distância confortável. Desça mantendo o tronco e os joelhos controlados, aproveitando a trajetória guiada do equipamento. Suba sem perder o apoio dos pés.","Agachamento livre","Hack squat"],
+["Agachamento sumô","Glúteos • Adutores • Quadríceps","8–12","Use uma base mais aberta e deixe os pés levemente apontados para fora. Desça mantendo os joelhos acompanhando a direção dos pés e o tronco firme. Suba empurrando o chão e contraindo glúteos no final sem hiperestender a lombar.","Agachamento goblet sumô","Leg press aberto"],
+["Agachamento goblet sumô","Glúteos • Adutores • Quadríceps","10–15","Segure o peso junto ao peito com os pés mais afastados. Desça entre as pernas mantendo os joelhos acompanhando os pés e o tronco estável. Suba controlando a trajetória e evitando juntar os joelhos no final.","Agachamento sumô","Leg press"],
+["Cadeira extensora","Quadríceps","10–15","Ajuste o eixo da máquina ao alinhamento do joelho e apoie as costas. Estenda os joelhos de maneira controlada até contrair o quadríceps, sem chutar a carga. Desça lentamente até a amplitude confortável.","Leg press","Hack squat"],
+["Cadeira flexora","Posterior de coxa","8–12","Ajuste o equipamento para que o eixo fique alinhado ao joelho e o apoio estabilize o corpo. Flexione os joelhos levando o rolo para baixo ou para trás, conforme a máquina, e retorne lentamente sem deixar a carga cair.","Mesa flexora","Terra romeno"],
+["Mesa flexora deitada","Posterior de coxa","8–12","Deite-se com quadril e tronco estáveis no equipamento. Flexione os joelhos aproximando os calcanhares dos glúteos sem levantar o quadril. Retorne lentamente até alongar a parte posterior das coxas de forma controlada.","Cadeira flexora","Flexora unilateral"],
+["Mesa flexora unilateral","Posterior de coxa","10–15","Ajuste a máquina e trabalhe uma perna por vez. Flexione o joelho mantendo o quadril apoiado e controle a descida. Evite girar a pelve para compensar a diferença de força entre os lados.","Mesa flexora","Cadeira flexora unilateral"],
+["Terra romeno com barra","Posterior • Glúteos • Lombar","6–10","Comece com a barra próxima às coxas. Faça uma dobradiça de quadril levando o bumbum para trás enquanto a barra desce próxima às pernas. Mantenha a coluna neutra e pare quando a amplitude deixar de ser confortável. Estenda o quadril para voltar.","Terra romeno com halteres","Good morning"],
+["Terra romeno com halteres","Posterior • Glúteos","8–12","Segure os halteres à frente das coxas e mantenha os pés firmes. Leve o quadril para trás, mantendo os pesos próximos às pernas e a coluna estável. Desça até sentir alongamento nos posteriores e retorne contraindo glúteos.","Terra romeno com barra","Stiff"],
+["Stiff com halteres","Posterior • Glúteos","8–12","Mantenha uma leve flexão nos joelhos e faça o movimento principalmente pelo quadril. Leve os pesos para baixo mantendo-os próximos ao corpo e pare quando a amplitude começar a comprometer a postura. Volte estendendo o quadril de maneira controlada.","Terra romeno","Mesa flexora"],
+["Good morning","Posterior • Glúteos • Lombar","8–12","Com a carga posicionada de forma segura, mantenha os pés estáveis e faça uma dobradiça de quadril levando o tronco à frente enquanto o quadril vai para trás. Mantenha a coluna neutra e retorne usando glúteos e posteriores.","Terra romeno","Extensão lombar"],
+["Hip thrust com barra","Glúteos • Posterior","8–12","Apoie a parte superior das costas em um banco e posicione a barra sobre o quadril com proteção adequada. Comece com o quadril baixo e faça extensão do quadril até o tronco e as coxas formarem uma linha confortável. Evite hiperestender a lombar no topo.","Glute bridge","Hip thrust máquina"],
+["Hip thrust máquina","Glúteos • Posterior","8–12","Ajuste o encosto e o apoio do quadril. Empurre através dos pés e estenda o quadril até contrair os glúteos, mantendo as costelas e o tronco controlados. Retorne lentamente sem perder o contato com o apoio.","Hip thrust com barra","Glute bridge"],
+["Glute bridge","Glúteos • Posterior","10–15","Deite-se com os pés apoiados e joelhos flexionados. Eleve o quadril contraindo os glúteos até formar uma linha confortável entre tronco e coxas. Faça uma breve pausa no topo e desça devagar.","Hip thrust","Glute bridge unilateral"],
+["Glute bridge unilateral","Glúteos • Posterior","10–15","Deite-se com um pé apoiado e a outra perna elevada. Empurre o chão com a perna de apoio para elevar o quadril mantendo a pelve nivelada. Desça lentamente e evite girar o quadril para compensar.","Glute bridge","Hip thrust"],
+["Abdução de quadril máquina","Glúteo médio • Glúteos","12–20","Sente-se com as costas apoiadas e ajuste o equipamento. Abra as pernas contra a resistência de forma controlada, sem usar impulso. Retorne lentamente até a posição inicial mantendo tensão no quadril.","Abdução no cabo","Caminhada lateral com faixa"],
+["Abdução de quadril no cabo","Glúteo médio","12–20","Prenda a tornozeleira na polia baixa e estabilize o corpo. Afaste a perna para o lado sem girar o tronco ou a pelve. Retorne lentamente e mantenha a tensão durante toda a série.","Abdução máquina","Caminhada lateral"],
+["Adutora máquina","Adutores","10–15","Ajuste o equipamento para começar em uma abertura confortável. Aproxime as pernas contra a resistência usando os músculos da parte interna da coxa. Retorne devagar sem deixar as placas baterem.","Agachamento sumô","Adutora no cabo"],
+["Panturrilha em pé","Panturrilhas","10–15","Fique com a parte anterior dos pés apoiada e permita que os calcanhares desçam de maneira controlada. Suba o máximo que conseguir sem perder equilíbrio e faça uma breve contração no topo. Evite quicar.","Panturrilha no smith","Panturrilha no leg press"],
+["Panturrilha sentada","Sóleo • Panturrilhas","10–15","Sente-se com a carga apoiada sobre as coxas e a parte anterior dos pés firme. Desça os calcanhares controladamente e depois empurre o apoio para elevar os calcanhares. Mantenha o movimento suave e completo.","Panturrilha em pé","Panturrilha no leg press"],
+["Panturrilha no leg press","Panturrilhas","10–15","Posicione apenas a parte anterior dos pés na plataforma e mantenha joelhos estáveis. Permita que os calcanhares desçam controladamente e depois faça a flexão plantar, elevando-os o máximo confortável.","Panturrilha em pé","Panturrilha sentada"],
+["Abdominal na máquina","Reto abdominal","10–20","Ajuste o equipamento para que o movimento permita flexionar o tronco confortavelmente. Contraia o abdômen aproximando o tórax da pelve sem puxar a cabeça com as mãos. Retorne lentamente mantendo tensão.","Crunch no cabo","Crunch no solo"],
+["Crunch no cabo","Reto abdominal","10–20","Ajoelhe-se diante da polia alta segurando a corda. Mantenha o quadril relativamente estável e flexione o tronco levando as costelas em direção à pelve. Retorne lentamente sem deixar a carga puxar o corpo de forma descontrolada.","Abdominal máquina","Crunch no solo"],
+["Crunch no solo","Reto abdominal","12–20","Deite-se com joelhos flexionados e pés apoiados. Eleve o tronco usando a contração do abdômen, sem puxar a cabeça com as mãos. Volte até a posição inicial de forma lenta e controlada.","Crunch no cabo","Abdominal máquina"],
+["Elevação de pernas","Abdômen • Flexores do quadril","8–15","Mantenha o tronco estável e eleve as pernas de forma controlada. Pense em aproximar a pelve do tronco no final do movimento em vez de simplesmente balançar as pernas. Desça devagar sem perder o controle lombar.","Elevação de joelhos","Reverse crunch"],
+["Elevação de joelhos na barra","Abdômen • Flexores do quadril","8–15","Fique suspenso com pegada firme. Eleve os joelhos em direção ao tronco controlando o balanço e, se possível, faça uma leve retroversão da pelve no alto. Desça devagar antes da próxima repetição.","Elevação de pernas","Reverse crunch"],
+["Reverse crunch","Reto abdominal","10–20","Deite-se e mantenha os joelhos flexionados. Em vez de apenas levantar as pernas, pense em enrolar a pelve para cima, aproximando os joelhos do tronco. Retorne lentamente sem deixar o movimento virar um balanço.","Elevação de pernas","Crunch"],
+["Prancha","Core","20–60 s","Apoie antebraços ou mãos e mantenha o corpo em linha reta. Contraia abdômen e glúteos, mantendo as costelas controladas e evitando deixar a lombar cair. Respire normalmente durante a sustentação.","Prancha lateral","Dead bug"],
+["Prancha lateral","Core • Oblíquos","20–45 s","Apoie o antebraço diretamente abaixo do ombro e mantenha o corpo alinhado lateralmente. Contraia abdômen e glúteos e evite deixar o quadril cair. Troque de lado após completar o tempo planejado.","Prancha","Pallof press"],
+["Dead bug","Core","8–15 por lado","Deite-se com braços apontando para cima e quadris e joelhos flexionados. Estenda braço e perna opostos sem deixar a lombar perder o controle. Retorne e alterne os lados mantendo a respiração e o abdômen ativos.","Bird dog","Pallof press"],
+["Bird dog","Core • Lombar • Glúteos","8–15 por lado","Comece em quatro apoios com mãos abaixo dos ombros e joelhos abaixo dos quadris. Estenda braço e perna opostos mantendo a pelve estável. Volte devagar e alterne os lados sem girar o tronco.","Dead bug","Prancha"],
+["Pallof press","Core • Oblíquos","10–15 por lado","Fique de lado para a polia e segure a manopla junto ao peito. Afaste as mãos do corpo sem permitir que a resistência gire o tronco. Retorne lentamente mantendo abdômen e glúteos ativos.","Prancha lateral","Cable chop"],
+["Cable chop","Core • Oblíquos","10–15 por lado","Posicione-se de lado para a polia e segure a manopla. Conduza o cabo em diagonal usando uma combinação controlada de movimento do tronco e quadril, sem transformar a repetição em um giro brusco. Retorne lentamente.","Pallof press","Wood chop"],
+["Flexão diamante","Tríceps • Peito","8–15","Aproxime as mãos sob o peito formando uma base estreita. Mantenha o corpo alinhado e desça controlando os cotovelos. Empurre o chão para retornar sem deixar o quadril cair.","Tríceps corda","Supino fechado"],
+["Supino fechado","Tríceps • Peito","6–10","Use uma pegada mais fechada que a do supino tradicional, mas ainda confortável para os punhos e ombros. Desça a barra com controle e mantenha os cotovelos relativamente próximos do tronco. Pressione sem perder a estabilidade das escápulas.","Tríceps testa","Flexão diamante"],
+["Remada invertida","Costas • Bíceps • Core","8–15","Posicione uma barra segura em altura adequada e fique abaixo dela com o corpo alinhado. Puxe o peito em direção à barra mantendo quadril e abdômen firmes. Desça lentamente sem deixar o corpo perder a linha.","Barra fixa assistida","Remada máquina"],
+["Kettlebell swing","Glúteos • Posterior • Core","10–20","Use uma dobradiça de quadril para levar o kettlebell entre as pernas e depois estenda explosivamente o quadril para projetá-lo à frente. O movimento deve vir principalmente do quadril, não de um agachamento profundo ou de uma elevação dos braços.","Terra romeno","Hip thrust"],
+["Levantamento terra convencional","Posterior • Glúteos • Costas","3–6","Posicione os pés de forma que a barra fique sobre o meio do pé. Segure a barra e organize a coluna, o abdômen e os ombros antes de iniciar. Empurre o chão e estenda joelhos e quadril juntos, mantendo a barra próxima ao corpo. Retorne com controle.","Terra romeno","Trap bar deadlift"],
+["Trap bar deadlift","Posterior • Glúteos • Quadríceps","4–8","Entre na trap bar com os pés firmes e segure as alças. Faça a saída mantendo o tronco estável e empurre o chão enquanto estende joelhos e quadril. Finalize em posição ereta sem inclinar o corpo para trás e retorne controladamente.","Levantamento terra","Leg press"],
+["Agachamento com pausa","Quadríceps • Glúteos • Core","5–8","Desça até uma profundidade que consiga controlar e faça uma pausa curta sem relaxar completamente. Mantenha tensão no tronco e depois suba com força, evitando rebater de forma descontrolada no fundo.","Agachamento livre","Hack squat"],
+["Leg press com pés altos","Glúteos • Posterior • Quadríceps","8–12","Posicione os pés um pouco mais altos na plataforma, mantendo-os estáveis. Desça com controle e preserve o apoio da lombar. Empurre a plataforma mantendo os joelhos acompanhando os pés.","Leg press tradicional","Hack squat"],
+["Leg press com pés baixos","Quadríceps","8–12","Posicione os pés um pouco mais baixos, desde que isso seja confortável para seus joelhos e tornozelos. Desça controladamente sem perder o apoio lombar e empurre a plataforma mantendo a trajetória dos joelhos.","Leg press tradicional","Cadeira extensora"]
+];
+const DEFAULT={SEG:["SEGUNDA — PUSH","Peito • Ombros • Tríceps",[["Supino reto","5–8",2],["Desenvolvimento com halteres","6–10",2],["Elevação lateral","10–15",2],["Tríceps corda","10–15",2]]],TER:["TERÇA — PULL","Costas • Bíceps • Deltoide posterior",[["Barra fixa","6–10",2],["Remada apoiada","8–12",2],["Face pull","10–15",2],["Rosca direta","8–12",2]]],QUA:["QUARTA — PERNAS","Quadríceps • Posterior • Panturrilhas",[["Agachamento","5–8",2],["Terra romeno","6–10",2],["Cadeira extensora","10–15",1],["Mesa flexora","8–12",1],["Panturrilha em pé","10–15",2]]],QUI:["QUINTA — DESCANSO","Recuperação",[]],SEX:["SEXTA — UPPER","Peito • Costas • Ombros • Braços",[["Supino inclinado","6–10",2],["Puxada alta pronada","6–10",2],["Desenvolvimento máquina","8–12",1],["Rosca martelo","8–12",1],["Tríceps testa","8–12",1]]]};
+
+let plan=JSON.parse(localStorage.getItem("lvt_plan")||"null")||Object.fromEntries(Object.entries(DEFAULT).map(([k,v])=>[k,{name:v[0],sub:v[1],ex:v[2]}]));
+let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]"), settings=JSON.parse(localStorage.getItem("lvt_settings")||'{"name":"","unit":"kg","rir":1}'), day=localStorage.getItem("lvt_day")||"SEG";
+const $=x=>document.getElementById(x), save=()=>{localStorage.setItem("lvt_plan",JSON.stringify(plan));localStorage.setItem("lvt_logs",JSON.stringify(logs));localStorage.setItem("lvt_settings",JSON.stringify(settings))};
+const find=n=>LIB.find(x=>x[0]===n)||[n,"Geral","6–12","Execute com controle e amplitude confortável."];
+function tab(id,b){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));b.classList.add("active");if(id==="historico")history();if(id==="exercicios")library()}
+function render(){let p=plan[day];$("days").innerHTML=Object.keys(plan).map(x=>`<button class="${x===day?"active":""}" onclick="day='${x}';localStorage.setItem('lvt_day',day);render()">${x}</button>`).join("");$("title").textContent=p.name;$("sub").textContent=p.sub;if(day==="QUI"){$("list").innerHTML='<div class="card empty"><h2>Descanso</h2><p>Recupere-se. Sono, alimentação e atividade leve se desejar.</p></div>';return}let d=JSON.parse(localStorage.getItem("draft_"+day)||"{}");$("list").innerHTML=p.ex.map((e,i)=>{let rows="";for(let s=0;s<e[2];s++){let v=(d[i]||[])[s]||{};rows+=`<div class="set"><span>${s+1}</span><input class="kg" type="number" step=".5" value="${v.kg||""}" placeholder="${settings.unit}"><input class="reps" type="number" value="${v.reps||""}" placeholder="${e[1]}"><input class="rr" type="number" min="0" max="5" value="${v.rir??""}" placeholder="${settings.rir}"><button class="ok ${v.done?"on":""}" onclick="toggle(${i},${s},this)">✓</button></div>`}return `<div class="ex"><div class="row between"><b>${e[0]}</b><span class="tiny">${find(e[0])[1]} • ${e[1]}</span></div><div class="set head"><span>#</span><span>Carga</span><span>Reps</span><span>RIR</span><span></span></div><div>${rows}</div><div class="actions"><button onclick="series(${i},1)">＋ Série</button><button onclick="series(${i},-1)">− Série</button><button onclick="guide('${e[0].replace(/'/g,"\\'")}')">📖 Execução</button></div></div>`}).join("")}
+function sync(){let d=JSON.parse(localStorage.getItem("draft_"+day)||"{}");document.querySelectorAll(".ex").forEach((c,i)=>d[i]=[...c.querySelectorAll(".set")].slice(1).map(r=>({kg:r.querySelector(".kg").value,reps:r.querySelector(".reps").value,rir:r.querySelector(".rr").value,done:r.querySelector(".ok").classList.contains("on")})));localStorage.setItem("draft_"+day,JSON.stringify(d))}
+function toggle(i,s,b){sync();let d=JSON.parse(localStorage.getItem("draft_"+day)||"{}");d[i][s].done=!d[i][s].done;localStorage.setItem("draft_"+day,JSON.stringify(d));b.classList.toggle("on")}
+function series(i,n){sync();let e=plan[day].ex[i],z=Math.max(1,Math.min(8,e[2]+n));if(z===e[2])return;e[2]=z;save();render()}
+function finish(){if(day==="QUI")return alert("Hoje é descanso.");sync();let d=JSON.parse(localStorage.getItem("draft_"+day)||"{}"),rows=[];plan[day].ex.forEach((e,i)=>(d[i]||[]).forEach((v,s)=>{if(v.done||v.kg||v.reps)rows.push({exercise:e[0],set:s+1,kg:+v.kg||0,reps:+v.reps||0,rir:v.rir===""?+settings.rir:+v.rir||0})}));if(!rows.length)return alert("Preencha ou marque ao menos uma série.");logs.unshift({date:new Date().toISOString(),day,name:plan[day].name,rows});localStorage.removeItem("draft_"+day);save();history();alert("Treino salvo!")}
+function edit(){let p=plan[day];$("editList").innerHTML=p.ex.map((e,i)=>editItem(e,i)).join("");$("editModal").classList.add("open")}
+function editItem(e,i){let o=LIB.map(x=>`<option ${x[0]===e[0]?"selected":""}>${x[0]}</option>`).join("");return `<div class="edit"><div class="tiny">Exercício ${i+1}</div><div class="editgrid"><select class="es">${o}</select><input class="sc" type="number" min="1" max="8" value="${e[2]}"><button class="danger" onclick="removeEdit(${i})">🗑</button></div></div>`}
+function addFromEdit(){let used=plan[day].ex.map(x=>x[0]),x=LIB.find(a=>!used.includes(a[0]))||LIB[0];plan[day].ex.push([x[0],x[2],1]);edit()}
+function removeEdit(i){plan[day].ex.splice(i,1);edit()}
+function saveEdit(){plan[day].ex=[...document.querySelectorAll(".edit")].map(x=>{let n=x.querySelector(".es").value,a=find(n);return[n,a[2],Math.max(1,Math.min(8,+x.querySelector(".sc").value||1))]});save();closeM("editModal");render();alert("Treino atualizado!")}
+function addEx(){let used=plan[day].ex.map(x=>x[0]),x=LIB.find(a=>!used.includes(a[0]))||LIB[0];plan[day].ex.push([x[0],x[2],1]);save();render()}
+function guide(n){
+  let x=find(n),alts=x.slice(4);
+  $("gt").textContent=n;
+  $("gb").innerHTML=`<div class="card">
+    <div class="row wrap"><span class="badge">${x[1]}</span><span class="badge">Faixa sugerida: ${x[2]} reps</span></div>
+    <div class="section-title">Execução detalhada</div>
+    <p class="muted">${x[3]}</p>
+    <div class="section-title">Variações / substituições</div>
+    <p class="muted">${alts.join(" • ")||"Nenhuma variação cadastrada."}</p>
+    <div class="section-title">Como pensar no movimento</div>
+    <p class="muted">Priorize uma amplitude que consiga controlar, mantenha a trajetória consistente entre as repetições e evite transformar a última parte da série em movimentos desnecessários. A carga deve permitir que a técnica permaneça estável dentro da faixa de repetições escolhida.</p>
+  </div>`;
+  $("guideModal").classList.add("open")
+}
+function history(){$("hist").innerHTML=logs.length?logs.map(l=>`<div class="card"><div class="row between"><b>${l.name}</b><span class="muted">${new Date(l.date).toLocaleDateString("pt-BR")}</span></div><p class="muted">${l.rows.length} séries</p>${l.rows.slice(0,10).map(r=>`${r.exercise} — ${r.kg||"—"} ${settings.unit} × ${r.reps||"—"} • RIR ${r.rir}`).join("<br>")}</div>`).join(""):'<div class="card empty">Nenhum treino salvo.</div>'}
+function library(){
+  let q=($("search").value||"").toLowerCase().trim();
+  $("libCount").textContent=`${LIB.length} exercícios cadastrados`; $("lib").innerHTML='<div class="library-grid">'+LIB.filter(x=>(x[0]+" "+x[1]+" "+x[3]).toLowerCase().includes(q)).map(x=>
+    `<div class="card lib-card"><div class="lib-card-body">
+      <div class="row between"><div><b>${x[0]}</b><br><span class="muted">${x[1]} • ${x[2]}</span></div>
+      <button onclick="guide('${x[0].replace(/'/g,"\'")}')">📖 Ver</button></div>
+      <p class="muted" style="margin-top:10px;font-size:12px">${x[3]}</p>
+    </div></div>`
+  ).join("")+'</div>';
+}
+function cfg(){settings.name=$("name").value;settings.unit=$("unit").value;settings.rir=Math.max(0,Math.min(5,+$("rir").value||0));save();render();alert("Salvo!")}
+function reset(){if(confirm("Apagar todos os dados locais?")){localStorage.clear();location.reload()}}
+function closeM(id){$(id).classList.remove("open")}
+
+function setTheme(t){
+  const themes={
+    purple:["#8b5cf6","#a78bfa"],red:["#ef4444","#fb7185"],blue:["#3b82f6","#60a5fa"],
+    green:["#10b981","#34d399"],orange:["#f97316","#fb923c"]
+  };
+  let c=themes[t]||themes.purple;
+  document.documentElement.style.setProperty("--accent",c[0]);
+  document.documentElement.style.setProperty("--accent2",c[1]);
+  settings.theme=t;save();markThemes();
+}
+function markThemes(){document.querySelectorAll(".theme").forEach(b=>b.classList.remove("active"));let t=settings.theme||"purple";let b=document.querySelector(".theme-"+t);if(b)b.classList.add("active")}
+function toggleLight(){document.body.classList.toggle("light");settings.light=document.body.classList.contains("light");save()}
+function applyAppearance(){
+  setTheme(settings.theme||"purple");
+  document.body.classList.toggle("light",!!settings.light);
+  $("name").value=settings.name;$("unit").value=settings.unit;$("rir").value=settings.rir;
+  markThemes();
+}
+applyAppearance();render();history();library();
+</script></body></html>
