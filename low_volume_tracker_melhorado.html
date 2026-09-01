@@ -1,0 +1,278 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0d11"><title>Low Volume Tracker</title>
+<style>
+:root{
+  --accent:#8b5cf6;
+  --accent2:#a78bfa;
+  --bg:#090b10;
+  --surface:#11151d;
+  --surface2:#171c26;
+  --surface3:#1d2430;
+  --text:#f7f8fc;
+  --muted:#9ca7b7;
+  --border:#293140;
+  --success:#31d17c;
+  --danger:#ef5264;
+  --shadow:0 16px 45px rgba(0,0,0,.22);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:
+  radial-gradient(circle at 15% -10%,color-mix(in srgb,var(--accent) 20%,transparent),transparent 35%),
+  radial-gradient(circle at 90% 0%,rgba(38,211,155,.08),transparent 28%),
+  var(--bg);color:var(--text);
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+body.light{--bg:#f4f6fa;--surface:#fff;--surface2:#f0f2f7;--surface3:#e7eaf1;--text:#151922;--muted:#687386;--border:#d8dee8}
+.app{max-width:1040px;margin:auto;padding-bottom:50px}
+.top{
+  position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(18px);padding:15px 18px;border-bottom:1px solid var(--border);z-index:10
+}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand-title{font-size:17px;font-weight:900;letter-spacing:.5px}
+.brand-title span{color:var(--accent2)}
+.tiny{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+h1,h2,h3,p{margin:0 0 9px}
+h1{font-size:clamp(24px,5vw,34px);line-height:1.05}
+h2{font-size:20px}
+.muted{color:var(--muted)}
+.tabs,.days{display:flex;gap:7px;overflow:auto;margin-top:14px;padding-bottom:2px}
+.tabs button,.days button,button{
+  border:1px solid var(--border);border-radius:11px;padding:10px 13px;
+  background:var(--surface2);color:var(--text);cursor:pointer;transition:.18s;
+}
+button:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--accent) 55%,var(--border))}
+.tabs button.active,.days button.active,button.primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:white;
+  box-shadow:0 8px 24px color-mix(in srgb,var(--accent) 25%,transparent)
+}
+main{padding:20px 18px}
+.view{display:none}.view.active{display:block}
+.hero{
+  position:relative;overflow:hidden;background:
+  linear-gradient(135deg,color-mix(in srgb,var(--accent) 24%,var(--surface)) 0%,var(--surface) 65%);
+  border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border));
+  border-radius:22px;padding:22px;margin-bottom:14px;box-shadow:var(--shadow)
+}
+.hero:after{
+  content:"";position:absolute;width:170px;height:170px;border-radius:50%;
+  right:-55px;top:-75px;background:color-mix(in srgb,var(--accent) 18%,transparent);filter:blur(2px)
+}
+.hero>*{position:relative;z-index:1}
+.hero-icon{font-size:34px;margin-bottom:5px}
+.card,.ex{
+  background:color-mix(in srgb,var(--surface) 94%,transparent);
+  border:1px solid var(--border);border-radius:16px;padding:15px;margin-bottom:11px;
+  box-shadow:0 7px 24px rgba(0,0,0,.08)
+}
+.ex{padding:16px}
+.exercise-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.exercise-name{font-size:16px;font-weight:800}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;background:var(--surface3);color:var(--muted);font-size:10px;white-space:nowrap}
+.row{display:flex;gap:8px;align-items:center}.between{justify-content:space-between}.wrap{flex-wrap:wrap}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.actions button{font-size:12px}
+.sets{margin-top:8px}.set{
+  display:grid;grid-template-columns:28px 1fr 1fr 58px 40px;gap:6px;margin:6px 0;align-items:center
+}
+.head{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.set input,select,input{
+  width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  border-radius:9px;padding:9px;outline:none
+}
+.set input:focus,select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+.ok.on{background:var(--success);color:#07130c;border-color:transparent}
+.green{background:var(--success);color:#07130c;border-color:transparent}
+.danger{background:color-mix(in srgb,var(--danger) 18%,var(--surface2));color:#ff9aaa}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--surface2);border-radius:12px;padding:13px}
+.empty{text-align:center;padding:30px;color:var(--muted)}
+.library-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.lib-card{overflow:hidden;padding:0}
+.lib-card-body{padding:14px}
+.exercise-photo,.guide-photo{
+  width:100%;display:block;object-fit:cover;background:var(--surface2)
+}
+.exercise-photo{height:155px}.guide-photo{height:270px;border-radius:13px;margin:10px 0}
+.photo-source{font-size:10px;color:var(--muted);margin-top:5px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.76);backdrop-filter:blur(7px);z-index:20;padding:14px;overflow:auto}
+.modal.open{display:block}
+.modalbox{max-width:760px;margin:25px auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:17px;box-shadow:var(--shadow)}
+.edit{border-top:1px solid var(--border);padding:12px 0}.editgrid{display:grid;grid-template-columns:1fr 75px auto;gap:6px}
+.demo{height:170px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin:10px 0}
+.theme-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.theme{
+  min-height:54px;border-radius:12px;border:2px solid var(--border);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px
+}
+.theme.active{border-color:var(--text);box-shadow:0 0 0 2px var(--accent)}
+.theme-purple{background:linear-gradient(135deg,#6d28d9,#a78bfa)}
+.theme-red{background:linear-gradient(135deg,#b91c1c,#fb7185)}
+.theme-blue{background:linear-gradient(135deg,#1d4ed8,#60a5fa)}
+.theme-green{background:linear-gradient(135deg,#047857,#34d399)}
+.theme-orange{background:linear-gradient(135deg,#c2410c,#fb923c)}
+.info-list{display:grid;gap:8px;margin-top:10px}
+.info-item{padding:11px 12px;background:var(--surface2);border-radius:11px;border:1px solid var(--border)}
+.section-title{margin:18px 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+@media(max-width:700px){
+  .library-grid{grid-template-columns:1fr}.theme-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:550px){
+  .grid{grid-template-columns:1fr}
+  .set{grid-template-columns:24px 1fr 1fr 52px 36px}
+  main{padding:14px 12px}.top{padding:12px}
+  .hero{padding:18px}
+  .exercise-top{display:block}.badge{margin-top:7px}
+}
+</style>
+</head><body><div class="app"><header class="top"><div class="brand"><div><div class="brand-title">LOW VOLUME <span>TRACKER</span></div><div class="tiny">Seu treino, suas cargas, sua evolução</div></div><button onclick="tab('config',document.querySelectorAll('.tabs button')[3])">⚙️</button></div><div class="tabs"><button class="active" onclick="tab('treino',this)">Treino</button><button onclick="tab('historico',this)">Histórico</button><button onclick="tab('exercicios',this)">Exercícios</button><button onclick="tab('config',this)">Config.</button></div></header><main>
+<section id="treino" class="view active"><div class="days" id="days"></div><div class="hero"><div class="tiny">Sessão</div><h1 id="title"></h1><p id="sub" class="muted"></p><div class="row wrap"><button class="primary" onclick="edit()">✏️ Editar treino</button><button onclick="addEx()">＋ Exercício</button><button class="green" onclick="finish()">✓ Finalizar</button></div></div><div class="card"><b>Aquecimento • Feeder • PAP/PAPE</b><p class="muted">Aquecimento: 2–5 min + preparação específica. Feeder: 1–3 séries leves sem fadiga. PAP/PAPE é opcional e deve ser usado sem prejudicar a série efetiva. Séries efetivas: normalmente RIR 0–2.</p></div><div id="list"></div></section>
+<section id="historico" class="view"><div class="hero"><h1>Histórico</h1><p class="muted">Sessões salvas neste aparelho.</p></div><div id="hist"></div></section>
+<section id="exercicios" class="view"><div class="hero"><h1>Biblioteca</h1><p class="muted">Execução e variações.</p></div><input id="search" placeholder="Buscar..." oninput="library()"><div id="lib"></div></section>
+<section id="config" class="view">
+  <div class="hero"><div class="hero-icon">⚙️</div><h1>Configurações</h1><p class="muted">Personalize a aparência e o jeito que o tracker registra seu treino.</p></div>
+  <div class="card">
+    <h2>🎨 Tema</h2>
+    <p class="muted">Escolha uma cor para deixar o tracker com a sua cara.</p>
+    <div class="theme-grid">
+      <button class="theme theme-purple" onclick="setTheme('purple')">Roxo</button>
+      <button class="theme theme-red" onclick="setTheme('red')">Vermelho</button>
+      <button class="theme theme-blue" onclick="setTheme('blue')">Azul</button>
+      <button class="theme theme-green" onclick="setTheme('green')">Verde</button>
+      <button class="theme theme-orange" onclick="setTheme('orange')">Laranja</button>
+    </div>
+    <div class="actions"><button onclick="toggleLight()">☀️ Alternar claro/escuro</button></div>
+  </div>
+  <div class="card">
+    <h2>👤 Preferências</h2>
+    <div class="grid">
+      <label>Nome<input id="name" placeholder="Ex.: Luiz"></label>
+      <label>Unidade<select id="unit"><option>kg</option><option>lb</option></select></label>
+    </div>
+    <label style="display:block;margin-top:10px">RIR padrão<input id="rir" type="number" min="0" max="5"></label>
+    <div class="actions"><button class="green" onclick="cfg()">💾 Salvar preferências</button><button class="danger" onclick="reset()">🗑 Apagar dados</button></div>
+  </div>
+  <div class="card">
+    <h2>🧠 Como a lógica funciona?</h2>
+    <div class="info-list">
+      <div class="info-item"><b>1. Plano</b><br><span class="muted">Cada dia possui uma lista de exercícios e uma quantidade de séries. Você pode trocar exercícios, adicionar novos ou alterar o número de séries.</span></div>
+      <div class="info-item"><b>2. Registro</b><br><span class="muted">Ao preencher carga, repetições e RIR, o sistema guarda o rascunho no navegador usando localStorage. Você não precisa de banco de dados para usar.</span></div>
+      <div class="info-item"><b>3. Finalização</b><br><span class="muted">Ao finalizar, somente as séries preenchidas ou marcadas como concluídas entram no histórico. O rascunho daquele dia é limpo para o próximo treino.</span></div>
+      <div class="info-item"><b>4. Biblioteca</b><br><span class="muted">A biblioteca usa os exercícios cadastrados no JavaScript. Cada exercício possui grupo muscular, faixa de repetições, instrução e variações.</span></div>
+      <div class="info-item"><b>5. Fotos</b><br><span class="muted">As páginas de execução usam imagens externas da internet como referência visual. Se uma imagem não carregar, o texto de execução continua disponível.</span></div>
+    </div>
+  </div>
+</section>
+</main></div>
+<div class="modal" id="editModal"><div class="modalbox"><div class="row between"><h2>Editar treino</h2><button onclick="closeM('editModal')">✕</button></div><p class="muted">Troque exercícios e quantidade de séries. Máximo 8 séries por exercício.</p><div id="editList"></div><button class="primary" style="width:100%" onclick="addFromEdit()">＋ Adicionar exercício</button><button class="green" style="width:100%;margin-top:7px" onclick="saveEdit()">Salvar alterações</button></div></div>
+<div class="modal" id="guideModal"><div class="modalbox"><div class="row between"><h2 id="gt"></h2><button onclick="closeM('guideModal')">✕</button></div><div id="gb"></div></div></div>
+<script>
+const LIB=[
+["Supino reto","Peito","5–8","Mantenha escápulas estáveis, pés firmes e controle a descida.","Supino com halteres","Chest press"],
+["Supino inclinado","Peito","6–10","Desça com controle e pressione sem perder a posição do tronco.","Supino inclinado com halteres","Máquina inclinada"],
+["Chest press","Peito","8–12","Ajuste o banco, estabilize o corpo e empurre as alças com controle.","Supino reto","Máquina convergente"],
+["Crossover","Peito","10–15","Mantenha leve flexão dos cotovelos e aproxime as mãos controladamente.","Crucifixo máquina","Crucifixo com halteres"],
+["Barra fixa","Costas","6–10","Puxe os cotovelos para baixo, mantendo o tronco controlado.","Puxada alta","Barra fixa assistida"],
+["Puxada alta pronada","Costas","6–10","Puxe em direção ao alto do peito sem balançar.","Puxada neutra","Barra fixa"],
+["Puxada neutra","Costas","8–12","Puxe com os cotovelos e controle a volta.","Puxada pronada","Barra fixa"],
+["Remada curvada","Costas","6–10","Coluna neutra, quadril estável e cotovelos para trás.","Remada apoiada","Remada baixa"],
+["Remada apoiada","Costas","8–12","Apoie o peito e concentre-se em puxar os cotovelos para trás.","Remada baixa","Remada unilateral"],
+["Agachamento","Quadríceps/Glúteos","5–8","Desça com tronco firme e joelhos acompanhando os pés.","Hack squat","Leg press"],
+["Hack squat","Quadríceps","6–10","Mantenha as costas apoiadas e empurre pelo meio do pé.","Agachamento","Leg press"],
+["Leg press","Quadríceps","8–12","Use amplitude controlada sem perder o apoio lombar.","Hack squat","Agachamento"],
+["Afundo búlgaro","Quadríceps/Glúteos","8–12","Desça de forma controlada e empurre pelo pé da frente.","Passada","Leg press unilateral"],
+["Terra romeno","Posterior/Glúteos","6–10","Leve o quadril para trás mantendo coluna neutra.","Stiff com halteres","Mesa flexora"],
+["Mesa flexora","Posterior","8–12","Flexione o joelho controlando a volta e mantenha o quadril apoiado.","Cadeira flexora","Terra romeno"],
+["Cadeira extensora","Quadríceps","10–15","Estenda o joelho de forma controlada.","Leg press","Hack squat"],
+["Hip thrust","Glúteos","8–12","Faça extensão de quadril sem hiperestender a lombar.","Glute bridge","Afundo búlgaro"],
+["Panturrilha em pé","Panturrilhas","10–15","Desça até alongar e suba sem quicar.","Panturrilha sentado","Leg press"],
+["Desenvolvimento com halteres","Ombros","6–10","Pressione mantendo o tronco firme.","Desenvolvimento máquina","Arnold press"],
+["Desenvolvimento máquina","Ombros","8–12","Ajuste o assento e pressione com controle.","Desenvolvimento com halteres","Arnold press"],
+["Elevação lateral","Deltoide lateral","10–15","Eleve com controle, evitando balanço.","Cabo unilateral","Máquina lateral"],
+["Face pull","Deltoide posterior","10–15","Puxe a corda em direção ao rosto com cotovelos altos.","Crucifixo inverso","Cabo"],
+["Rosca direta","Bíceps","8–12","Cotovelos estáveis e sem embalar o corpo.","Rosca Scott","Rosca no cabo"],
+["Rosca inclinada","Bíceps","10–15","Controle a descida sem projetar os ombros.","Rosca alternada","Rosca no cabo"],
+["Rosca martelo","Bíceps/Braquial","8–12","Pegada neutra e descida controlada.","Rosca direta","Rosca na corda"],
+["Rosca Scott","Bíceps","8–12","Braços apoiados e movimento controlado.","Rosca direta","Máquina"],
+["Tríceps testa","Tríceps","8–12","Mantenha cotovelos relativamente estáveis.","Tríceps corda","Extensão acima da cabeça"],
+["Tríceps corda","Tríceps","10–15","Cotovelos próximos ao corpo e extensão controlada.","Tríceps barra","Extensão acima da cabeça"],
+["Tríceps acima da cabeça","Tríceps","10–15","Mantenha cotovelos apontados para frente.","Tríceps corda","Tríceps francês"],
+["Mergulho assistido","Peito/Tríceps","6–10","Desça controladamente e mantenha os ombros confortáveis.","Supino fechado","Tríceps máquina"]
+];
+const PHOTO={
+  "Supino reto":{
+    url:"https://s2-ge.glbimg.com/nG2mbkvKpkXTBaiUJ3Iz9LGckoM%3D/2401x0/filters%3Aformat%28jpeg%29/https%3A/i.s3.glbimg.com/v1/AUTH_bc8228b6673f488aa253bbcb03c80ec5/internal_photos/bs/2024/A/C/iGfWsrSPWOwAqBZswwNA/supino-reto-com-barra.png",
+    source:"GE — Eu Atleta"
+  },
+  "Agachamento":{
+    url:"https://st3.depositphotos.com/1785712/14995/i/450/depositphotos_149956478-stock-photo-man-doing-a-crossfit-back.jpg",
+    source:"Depositphotos"
+  },
+  "Rosca direta":{
+    url:"https://scitecnutrition.pt/images/bbcomment/files/pt_20250602_os_melhores_exercicios_para_bracos_desenvolve_biceps02.jpg",
+    source:"SciTec Nutrition"
+  }
+};
+const PHOTO_FALLBACK=PHOTO["Rosca direta"];
+const DEFAULT={SEG:["SEGUNDA — PUSH","Peito • Ombros • Tríceps",[["Supino reto","5–8",2],["Desenvolvimento com halteres","6–10",2],["Elevação lateral","10–15",2],["Tríceps corda","10–15",2]]],TER:["TERÇA — PULL","Costas • Bíceps • Deltoide posterior",[["Barra fixa","6–10",2],["Remada apoiada","8–12",2],["Face pull","10–15",2],["Rosca direta","8–12",2]]],QUA:["QUARTA — PERNAS","Quadríceps • Posterior • Panturrilhas",[["Agachamento","5–8",2],["Terra romeno","6–10",2],["Cadeira extensora","10–15",1],["Mesa flexora","8–12",1],["Panturrilha em pé","10–15",2]]],QUI:["QUINTA — DESCANSO","Recuperação",[]],SEX:["SEXTA — UPPER","Peito • Costas • Ombros • Braços",[["Supino inclinado","6–10",2],["Puxada alta pronada","6–10",2],["Desenvolvimento máquina","8–12",1],["Rosca martelo","8–12",1],["Tríceps testa","8–12",1]]]};
+
+let plan=JSON.parse(localStorage.getItem("lvt_plan")||"null")||Object.fromEntries(Object.entries(DEFAULT).map(([k,v])=>[k,{name:v[0],sub:v[1],ex:v[2]}]));
+let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]"), settings=JSON.parse(localStorage.getItem("lvt_settings")||'{"name":"","unit":"kg","rir":1}'), day=localStorage.getItem("lvt_day")||"SEG";
+const $=x=>document.getElementById(x), save=()=>{localStorage.setItem("lvt_plan",JSON.stringify(plan));localStorage.setItem("lvt_logs",JSON.stringify(logs));localStorage.setItem("lvt_settings",JSON.stringify(settings))};
+const find=n=>LIB.find(x=>x[0]===n)||[n,"Geral","6–12","Execute com controle e amplitude confortável."];
+function tab(id,b){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));b.classList.add("active");if(id==="historico")history();if(id==="exercicios")library()}
+function render(){let p=plan[day];$("days").innerHTML=Object.keys(plan).map(x=>`<button class="${x===day?"active":""}" onclick="day='${x}';localStorage.setItem('lvt_day',day);render()">${x}</button>`).join("");$("title").textContent=p.name;$("sub").textContent=p.sub;if(day==="QUI"){$("list").innerHTML='<div class="card empty"><h2>Descanso</h2><p>Recupere-se. Sono, alimentação e atividade leve se desejar.</p></div>';return}let d=JSON.parse(localStorage.getItem("draft_"+day)||"{}");$("list").innerHTML=p.ex.map((e,i)=>{let rows="";for(let s=0;s<e[2];s++){let v=(d[i]||[])[s]||{};rows+=`<div class="set"><span>${s+1}</span><input class="kg" type="number" step=".5" value="${v.kg||""}" placeholder="${settings.unit}"><input class="reps" type="number" value="${v.reps||""}" placeholder="${e[1]}"><input class="rr" type="number" min="0" max="5" value="${v.rir??""}" placeholder="${settings.rir}"><button class="ok ${v.done?"on":""}" onclick="toggle(${i},${s},this)">✓</button></div>`}return `<div class="ex"><div class="row between"><b>${e[0]}</b><span class="tiny">${find(e[0])[1]} • ${e[1]}</span></div><div class="set head"><span>#</span><span>Carga</span><span>Reps</span><span>RIR</span><span></span></div><div>${rows}</div><div class="actions"><button onclick="series(${i},1)">＋ Série</button><button onclick="series(${i},-1)">− Série</button><button onclick="guide('${e[0].replace(/'/g,"\\'")}')">📖 Execução</button></div></div>`}).join("")}
+function sync(){let d=JSON.parse(localStorage.getItem("draft_"+day)||"{}");document.querySelectorAll(".ex").forEach((c,i)=>d[i]=[...c.querySelectorAll(".set")].slice(1).map(r=>({kg:r.querySelector(".kg").value,reps:r.querySelector(".reps").value,rir:r.querySelector(".rr").value,done:r.querySelector(".ok").classList.contains("on")})));localStorage.setItem("draft_"+day,JSON.stringify(d))}
+function toggle(i,s,b){sync();let d=JSON.parse(localStorage.getItem("draft_"+day)||"{}");d[i][s].done=!d[i][s].done;localStorage.setItem("draft_"+day,JSON.stringify(d));b.classList.toggle("on")}
+function series(i,n){sync();let e=plan[day].ex[i],z=Math.max(1,Math.min(8,e[2]+n));if(z===e[2])return;e[2]=z;save();render()}
+function finish(){if(day==="QUI")return alert("Hoje é descanso.");sync();let d=JSON.parse(localStorage.getItem("draft_"+day)||"{}"),rows=[];plan[day].ex.forEach((e,i)=>(d[i]||[]).forEach((v,s)=>{if(v.done||v.kg||v.reps)rows.push({exercise:e[0],set:s+1,kg:+v.kg||0,reps:+v.reps||0,rir:v.rir===""?+settings.rir:+v.rir||0})}));if(!rows.length)return alert("Preencha ou marque ao menos uma série.");logs.unshift({date:new Date().toISOString(),day,name:plan[day].name,rows});localStorage.removeItem("draft_"+day);save();history();alert("Treino salvo!")}
+function edit(){let p=plan[day];$("editList").innerHTML=p.ex.map((e,i)=>editItem(e,i)).join("");$("editModal").classList.add("open")}
+function editItem(e,i){let o=LIB.map(x=>`<option ${x[0]===e[0]?"selected":""}>${x[0]}</option>`).join("");return `<div class="edit"><div class="tiny">Exercício ${i+1}</div><div class="editgrid"><select class="es">${o}</select><input class="sc" type="number" min="1" max="8" value="${e[2]}"><button class="danger" onclick="removeEdit(${i})">🗑</button></div></div>`}
+function addFromEdit(){let used=plan[day].ex.map(x=>x[0]),x=LIB.find(a=>!used.includes(a[0]))||LIB[0];plan[day].ex.push([x[0],x[2],1]);edit()}
+function removeEdit(i){plan[day].ex.splice(i,1);edit()}
+function saveEdit(){plan[day].ex=[...document.querySelectorAll(".edit")].map(x=>{let n=x.querySelector(".es").value,a=find(n);return[n,a[2],Math.max(1,Math.min(8,+x.querySelector(".sc").value||1))]});save();closeM("editModal");render();alert("Treino atualizado!")}
+function addEx(){let used=plan[day].ex.map(x=>x[0]),x=LIB.find(a=>!used.includes(a[0]))||LIB[0];plan[day].ex.push([x[0],x[2],1]);save();render()}
+function guide(n){
+  let x=find(n),alts=x.slice(4),p=PHOTO[n]||PHOTO[(x[0].toLowerCase().includes("supino")?"Supino reto":x[0].toLowerCase().includes("agachamento")?"Agachamento":x[0].toLowerCase().includes("rosca")?"Rosca direta":"")];
+  let photo=p?`<img class="guide-photo" src="${p.url}" alt="Referência visual de ${n}" onerror="this.style.display='none'"><div class="photo-source">📷 Referência: ${p.source}</div>`:"";
+  $("gt").textContent=n;
+  $("gb").innerHTML=`${photo}
+    <div class="demo"><svg width="330" height="160" viewBox="0 0 330 160"><circle cx="165" cy="40" r="15" fill="none" stroke="var(--accent)" stroke-width="6"/><path d="M165 55v50m0-35-55 25m55-25 55 25m-55 10-35 40m35-40 35 40M90 25h150" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><path d="M90 25l12-7m-12 7 12 7m138-7-12-7m12 7-12 7" stroke="var(--success)" stroke-width="4" fill="none"/></svg></div>
+    <p><b>Como executar</b></p><p class="muted">${x[3]}</p>
+    <p><b>Variações</b></p><p class="muted">${alts.join(" • ")||"Consulte um profissional para escolher uma variação adequada."}</p>
+    <p class="muted">A foto é uma referência visual externa; a instrução do tracker continua sendo o guia principal. Para exercícios com carga livre, priorize técnica e orientação profissional.</p>`;
+  $("guideModal").classList.add("open")
+}
+function history(){$("hist").innerHTML=logs.length?logs.map(l=>`<div class="card"><div class="row between"><b>${l.name}</b><span class="muted">${new Date(l.date).toLocaleDateString("pt-BR")}</span></div><p class="muted">${l.rows.length} séries</p>${l.rows.slice(0,10).map(r=>`${r.exercise} — ${r.kg||"—"} ${settings.unit} × ${r.reps||"—"} • RIR ${r.rir}`).join("<br>")}</div>`).join(""):'<div class="card empty">Nenhum treino salvo.</div>'}
+function library(){
+  let q=($("search").value||"").toLowerCase();
+  $("lib").innerHTML='<div class="library-grid">'+LIB.filter(x=>(x[0]+" "+x[1]).toLowerCase().includes(q)).map(x=>{
+    let p=PHOTO[x[0]]||PHOTO[(x[0].toLowerCase().includes("supino")?"Supino reto":x[0].toLowerCase().includes("agachamento")?"Agachamento":x[0].toLowerCase().includes("rosca")?"Rosca direta":"")];
+    let img=p?`<img class="exercise-photo" src="${p.url}" alt="${x[0]}" onerror="this.style.display='none'">`:"";
+    return `<div class="card lib-card">${img}<div class="lib-card-body"><div class="row between"><div><b>${x[0]}</b><br><span class="muted">${x[1]} • ${x[2]}</span></div><button onclick="guide('${x[0].replace(/'/g,"\\'")}')">📖 Ver</button></div></div></div>`;
+  }).join("")+'</div>';
+}
+function cfg(){settings.name=$("name").value;settings.unit=$("unit").value;settings.rir=Math.max(0,Math.min(5,+$("rir").value||0));save();render();alert("Salvo!")}
+function reset(){if(confirm("Apagar todos os dados locais?")){localStorage.clear();location.reload()}}
+function closeM(id){$(id).classList.remove("open")}
+
+function setTheme(t){
+  const themes={
+    purple:["#8b5cf6","#a78bfa"],red:["#ef4444","#fb7185"],blue:["#3b82f6","#60a5fa"],
+    green:["#10b981","#34d399"],orange:["#f97316","#fb923c"]
+  };
+  let c=themes[t]||themes.purple;
+  document.documentElement.style.setProperty("--accent",c[0]);
+  document.documentElement.style.setProperty("--accent2",c[1]);
+  settings.theme=t;save();markThemes();
+}
+function markThemes(){document.querySelectorAll(".theme").forEach(b=>b.classList.remove("active"));let t=settings.theme||"purple";let b=document.querySelector(".theme-"+t);if(b)b.classList.add("active")}
+function toggleLight(){document.body.classList.toggle("light");settings.light=document.body.classList.contains("light");save()}
+function applyAppearance(){
+  setTheme(settings.theme||"purple");
+  document.body.classList.toggle("light",!!settings.light);
+  $("name").value=settings.name;$("unit").value=settings.unit;$("rir").value=settings.rir;
+  markThemes();
+}
+applyAppearance();render();history();library();
+</script></body></html>
