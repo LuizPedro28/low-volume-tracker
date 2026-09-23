@@ -19,7 +19,8 @@ offline depois da primeira visita.
   massa muscular de gordura).
 - **Assistente de IA**: uma aba de chat onde você pode pedir ajuda para
   montar ou ajustar seus treinos e até enviar fotos do seu físico para
-  receber feedback. Funciona com a **sua própria chave da API da Anthropic**
+  receber feedback. Funciona com a **sua própria chave de API — Google
+  Gemini (grátis) ou Anthropic Claude (pago)**
   (veja a seção específica abaixo — é essencial entender como isso funciona
   antes de usar).
 - **Novo visual**, com identidade própria (tipografia condensada nos títulos,
@@ -78,23 +79,46 @@ um subcaminho como `https://usuario.github.io/repositorio/`.
 ## Assistente de IA — como funciona e limitações
 
 O app **não tem servidor/backend**, então o assistente de IA não é um serviço
-pronto embutido — ele chama a API da Anthropic **diretamente do seu
-navegador**, usando uma chave de API que você mesmo cria e cola em
-Configurações → Assistente de IA.
+pronto embutido — ele chama a API de IA **diretamente do seu navegador**,
+usando uma chave que você mesmo cria e cola em Configurações → Assistente de
+IA. Tem dois provedores para escolher:
+
+### Google Gemini — opção gratuita (recomendada)
+
+- Crie uma chave em [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+  — é grátis, não pede cartão de crédito.
+- O nível gratuito do Google AI Studio tem um limite generoso pra uso
+  pessoal (dezenas de mensagens por minuto, centenas por dia, dependendo do
+  modelo escolhido), mais do que suficiente pra conversar sobre treino e
+  mandar fotos ocasionalmente.
+- Entende texto e imagem (fotos do físico), então dá pra usar a função de
+  avaliação normalmente.
+
+### Anthropic Claude — opção paga
 
 - Crie uma chave em [console.anthropic.com](https://console.anthropic.com/settings/keys).
-- A chave fica **só no `localStorage` do seu navegador** — não é enviada a
-  nenhum servidor além da própria Anthropic, e não fica visível para outras
-  pessoas que acessem o site publicado (cada visitante usaria a própria
-  chave, se quisesse usar o assistente).
-- O uso é cobrado pela Anthropic conforme a tabela de preços da API — é uma
-  cobrança separada da assinatura do site claude.ai, e envio de fotos custa
-  um pouco mais do que só texto.
+- Ganha uns créditos iniciais na criação da conta, mas eles expiram em
+  poucas semanas — depois disso é cobrado por uso, conforme a tabela de
+  preços da API (cobrança separada da assinatura do site claude.ai).
+- Pode valer a pena se você já tiver uma chave da Anthropic por outro
+  motivo, ou preferir a qualidade de resposta do Claude.
+
+### Vale para os dois provedores
+
+- A chave fica **só no `localStorage` do seu navegador** — não passa por
+  nenhum servidor além do provedor escolhido (Google ou Anthropic), e não
+  fica visível para outras pessoas que acessem o site publicado (cada
+  visitante usaria a própria chave).
 - Como a chave fica salva no navegador, **não publique prints com ela
   visível** nem use isso em um computador compartilhado sem depois apagá-la
   em Configurações.
 - Fotos enviadas ao assistente são redimensionadas no próprio navegador antes
-  de serem enviadas, para economizar dados e custo.
+  de serem enviadas, para economizar dados e custo/cota.
+- Se um dia o nome do modelo escolhido parar de funcionar (provedores
+  descontinuam modelos de tempos em tempos), veja o nome atual no site do
+  provedor (Google AI Studio ou console da Anthropic) e ajuste a opção
+  correspondente no arquivo `index.html`, na função `applyAppearance` /
+  nos `<select>` de modelo em Configurações.
 
 ## Como rodar localmente
 
@@ -196,5 +220,50 @@ sistema como alternativa.
 - JavaScript (gráficos em SVG nativo, sem biblioteca externa)
 - Web Storage API (`localStorage`)
 - Web App Manifest + Service Worker (PWA)
-- API da Anthropic (Claude), chamada diretamente do navegador com chave
-  própria do usuário
+- API do Google Gemini e/ou da Anthropic (Claude), chamada diretamente do
+  navegador com chave própria do usuário
+
+## Ideias para próximas versões
+
+Nenhuma dessas está implementada ainda — é só um roteiro de possibilidades,
+organizado por área, para quando quiser continuar evoluindo o app:
+
+**Treino**
+- Superset/circuito: agrupar exercícios para fazer em sequência, sem descanso
+- Tempo de descanso configurável por exercício (não só um valor global)
+- Calculadora de anilhas: mostrar quais anilhas colocar na barra pra bater o
+  peso desejado
+- Reordenar exercícios dentro do dia (arrastar ou botões ↑/↓, igual já existe
+  para os dias)
+- Modelos prontos de treino (push/pull/legs, upper/lower, full body) para
+  importar com um toque em vez de montar do zero
+- Sugestão automática de progressão de carga (ex.: "bateu RIR 0 nas duas
+  últimas sessões, tente +2,5 kg")
+
+**Histórico e evolução**
+- Volume total por grupo muscular por semana, não só carga máxima por
+  exercício
+- Recordes pessoais (PRs) destacados automaticamente quando batidos
+- Exportar/importar os dados em um arquivo (JSON) — útil como backup ou para
+  levar o histórico para outro aparelho, já que hoje tudo fica só no
+  navegador local
+- Calendário estilo "heatmap" mostrando os dias em que você treinou
+
+**Avaliação física**
+- Fotos de progresso ao longo do tempo, com comparação lado a lado por data
+- Medidas corporais além de peso/altura (braço, cintura, coxa etc.)
+- Gráfico do peso corporal ao longo do tempo, junto com o gráfico de carga
+
+**Assistente de IA**
+- Geração de um treino completo a partir de um objetivo em uma frase (ex.:
+  "monta um ABC de 4 dias focado em hipertrofia") direto para dentro do plano
+- O assistente sugerir progressão de carga com base no histórico real
+- Mais provedores, incluindo opções que rodam localmente no navegador sem
+  precisar de internet ou chave nenhuma (com menos qualidade que os modelos
+  em nuvem, mas 100% grátis e privado)
+
+**Geral / PWA**
+- Sincronizar entre aparelhos (por exemplo exportando/importando o backup
+  em JSON manualmente, já que o app não tem conta nem servidor próprio)
+- Lembrete/notificação programada para o dia de treino
+- Suporte a mais de um perfil no mesmo aparelho

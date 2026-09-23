@@ -434,13 +434,30 @@ button.full{width:100%;margin-top:8px}
   </div>
   <div class="card">
     <h2>Assistente de IA</h2>
-    <p class="muted">O assistente conversa usando a API da Anthropic <b>direto do seu navegador, com a sua própria chave</b>. A chave fica salva só neste aparelho (localStorage) e nunca passa por nenhum outro servidor além da própria Anthropic. Crie uma em <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> — o uso é cobrado pela Anthropic conforme a tabela de preços da API (é diferente do plano do site claude.ai).</p>
-    <label>Chave de API<input id="aiApiKey" type="password" placeholder="sk-ant-..." autocomplete="off"></label>
-    <label class="block">Modelo<select id="aiModel">
-      <option value="claude-sonnet-5">Sonnet — melhor qualidade</option>
-      <option value="claude-haiku-4-5-20251001">Haiku — mais rápido e barato</option>
+    <p class="muted">O assistente chama a API de IA <b>direto do seu navegador, com a sua própria chave</b> — ela fica salva só neste aparelho (localStorage) e nunca passa por nenhum outro servidor além do provedor escolhido.</p>
+    <div class="info-list" style="margin:10px 0">
+      <div class="info-item"><b>Google Gemini — grátis</b><br><span class="muted">Tem um nível gratuito de verdade, sem cartão de crédito, com limite generoso pra uso pessoal. Recomendado. Crie a chave em <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</span></div>
+      <div class="info-item"><b>Anthropic Claude — pago</b><br><span class="muted">Dá US$5 de crédito só na criação da conta (expira em cerca de 30 dias); depois disso é cobrado por uso. Crie em <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.</span></div>
+    </div>
+    <label>Provedor<select id="aiProvider" onchange="onAiProviderChange()">
+      <option value="gemini">Google Gemini (grátis)</option>
+      <option value="anthropic">Anthropic Claude (pago)</option>
     </select></label>
-    <div class="actions"><button type="button" class="primary" onclick="saveAiSettings()">💾 Salvar chave</button></div>
+    <div id="aiGeminiFields">
+      <label class="block">Chave da API do Gemini<input id="aiKeyGemini" type="password" placeholder="AIza..." autocomplete="off"></label>
+      <label class="block">Modelo<select id="aiModelGemini">
+        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+        <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+      </select></label>
+    </div>
+    <div id="aiAnthropicFields" style="display:none">
+      <label class="block">Chave da API da Anthropic<input id="aiKeyAnthropic" type="password" placeholder="sk-ant-..." autocomplete="off"></label>
+      <label class="block">Modelo<select id="aiModelAnthropic">
+        <option value="claude-sonnet-5">Sonnet — melhor qualidade</option>
+        <option value="claude-haiku-4-5-20251001">Haiku — mais rápido e barato</option>
+      </select></label>
+    </div>
+    <div class="actions"><button type="button" class="primary" onclick="saveAiSettings()">💾 Salvar</button></div>
   </div>
   <div class="card">
     <h2>Como funciona</h2>
@@ -723,7 +740,9 @@ function loadPlan(){
 
 let plan=loadPlan();
 let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]");
-let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiApiKey:"",aiModel:"claude-sonnet-5"},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
+let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.0-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5"},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
+if(settings.aiApiKey&&!settings.aiKeyAnthropic){settings.aiKeyAnthropic=settings.aiApiKey;settings.aiProvider="anthropic";}
+if(settings.aiModel&&settings.aiModelAnthropic==="claude-sonnet-5"){settings.aiModelAnthropic=settings.aiModel;}
 let currentDay=localStorage.getItem("lvt_current")||localStorage.getItem("lvt_day")||(plan[0]&&plan[0].id);
 if(!plan.find(d=>d.id===currentDay))currentDay=plan[0]?plan[0].id:null;
 
@@ -745,7 +764,7 @@ function showView(id,btn){
   if(id==="historico")renderHistory();
   if(id==="exercicios")renderLibrary();
   if(id==="config")markThemeActive();
-  if(id==="ia"){renderAiMessages();$("aiKeyWarning").style.display=settings.aiApiKey?"none":"block";}
+  if(id==="ia"){renderAiMessages();const hasKey=settings.aiProvider==="gemini"?!!settings.aiKeyGemini:!!settings.aiKeyAnthropic;$("aiKeyWarning").style.display=hasKey?"none":"block";}
 }
 function closeM(id){$(id).classList.remove("open");}
 
@@ -1135,8 +1154,12 @@ function applyAppearance(){
   $("rir").value=settings.rir??1;
   $("weightKg").value=settings.weightKg||"";
   $("heightCm").value=settings.heightCm||"";
-  $("aiApiKey").value=settings.aiApiKey||"";
-  $("aiModel").value=settings.aiModel||"claude-sonnet-5";
+  $("aiProvider").value=settings.aiProvider||"gemini";
+  $("aiKeyGemini").value=settings.aiKeyGemini||"";
+  $("aiModelGemini").value=settings.aiModelGemini||"gemini-2.0-flash";
+  $("aiKeyAnthropic").value=settings.aiKeyAnthropic||"";
+  $("aiModelAnthropic").value=settings.aiModelAnthropic||"claude-sonnet-5";
+  onAiProviderChange();
   computeAndShowBmi();
   markThemeActive();
 }
@@ -1166,9 +1189,17 @@ function saveBodySettings(){
 }
 
 /* ---------- assistente de IA ---------- */
+function onAiProviderChange(){
+  const p=$("aiProvider").value;
+  $("aiGeminiFields").style.display=p==="gemini"?"block":"none";
+  $("aiAnthropicFields").style.display=p==="anthropic"?"block":"none";
+}
 function saveAiSettings(){
-  settings.aiApiKey=$("aiApiKey").value.trim();
-  settings.aiModel=$("aiModel").value;
+  settings.aiProvider=$("aiProvider").value;
+  settings.aiKeyGemini=$("aiKeyGemini").value.trim();
+  settings.aiModelGemini=$("aiModelGemini").value;
+  settings.aiKeyAnthropic=$("aiKeyAnthropic").value.trim();
+  settings.aiModelAnthropic=$("aiModelAnthropic").value;
   saveAll();
   toast("Configuração da IA salva.");
 }
@@ -1243,10 +1274,56 @@ Sessões recentes registradas:
 ${recentLogs||"Nenhum histórico ainda."}
 Se o usuário enviar uma foto do próprio físico, dê uma avaliação honesta e construtiva focada em treino: postura visível, grupos musculares aparentemente mais e menos desenvolvidos, e sugestões de ênfase no treino. Nunca comente sobre atratividade ou faça observações que não sejam sobre treino/postura/desenvolvimento muscular. Deixe claro que sua avaliação é apenas uma referência visual e não substitui avaliação presencial de um educador físico, fisioterapeuta ou médico. Se a imagem não mostrar claramente o físico da pessoa para fins de treino, peça uma foto mais clara em vez de arriscar um palpite.`;
 }
+async function callAnthropic(turns,systemPrompt){
+  const messages=turns.map(m=>{
+    if(m.image)return {role:m.role,content:[{type:"image",source:{type:"base64",media_type:m.image.media_type,data:m.image.data}},{type:"text",text:m.text}]};
+    return {role:m.role,content:m.text};
+  });
+  const resp=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      "x-api-key":settings.aiKeyAnthropic,
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body:JSON.stringify({
+      model:settings.aiModelAnthropic||"claude-sonnet-5",
+      max_tokens:1024,
+      system:systemPrompt,
+      messages
+    })
+  });
+  const data=await resp.json();
+  if(!resp.ok)return {ok:false,text:(data&&data.error&&data.error.message)||`Erro ${resp.status}`};
+  const textOut=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n")||"(sem resposta)";
+  return {ok:true,text:textOut};
+}
+async function callGemini(turns,systemPrompt){
+  const contents=turns.map(m=>{
+    const parts=[];
+    if(m.image)parts.push({inline_data:{mime_type:m.image.media_type,data:m.image.data}});
+    parts.push({text:m.text});
+    return {role:m.role==="assistant"?"model":"user",parts};
+  });
+  const model=settings.aiModelGemini||"gemini-2.0-flash";
+  const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
+    method:"POST",
+    headers:{"content-type":"application/json","x-goog-api-key":settings.aiKeyGemini},
+    body:JSON.stringify({system_instruction:{parts:[{text:systemPrompt}]},contents})
+  });
+  const data=await resp.json();
+  if(!resp.ok)return {ok:false,text:(data&&data.error&&data.error.message)||`Erro ${resp.status}`};
+  const cand=data.candidates&&data.candidates[0];
+  const text=cand&&cand.content&&cand.content.parts?cand.content.parts.filter(p=>p.text).map(p=>p.text).join("\n"):"(sem resposta — talvez o Gemini tenha recusado a resposta por segurança; tente reformular)";
+  return {ok:true,text};
+}
 async function sendAiMessage(){
   const text=$("aiInput").value.trim();
   if(!text&&!aiPendingImage)return;
-  if(!settings.aiApiKey){toast("Adicione sua chave de API em Configurações.");showView("config");return;}
+  const provider=settings.aiProvider||"gemini";
+  const hasKey=provider==="gemini"?!!settings.aiKeyGemini:!!settings.aiKeyAnthropic;
+  if(!hasKey){toast("Adicione sua chave de API em Configurações.");showView("config");return;}
 
   const imageForRequest=aiPendingImage;
   aiChat.push({role:"user",text:text||"(foto enviada)",image:imageForRequest});
@@ -1260,44 +1337,16 @@ async function sendAiMessage(){
   renderAiMessages();
   $("aiSendBtn").disabled=true;
 
+  const systemPrompt=buildAiSystemPrompt();
+  const turns=aiChat.slice(0,-1).slice(-10);
+
   try{
-    const content=[];
-    if(imageForRequest)content.push({type:"image",source:{type:"base64",media_type:imageForRequest.media_type,data:imageForRequest.data}});
-    content.push({type:"text",text:text||"Avalie essa foto do meu físico e me dê sugestões de treino."});
-
-    const history=aiChat.slice(0,-2).slice(-10).map(m=>{
-      if(m.image)return {role:m.role,content:[{type:"image",source:{type:"base64",media_type:m.image.media_type,data:m.image.data}},{type:"text",text:m.text}]};
-      return {role:m.role,content:m.text};
-    });
-    history.push({role:"user",content});
-
-    const resp=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{
-        "content-type":"application/json",
-        "x-api-key":settings.aiApiKey,
-        "anthropic-version":"2023-06-01",
-        "anthropic-dangerous-direct-browser-access":"true"
-      },
-      body:JSON.stringify({
-        model:settings.aiModel||"claude-sonnet-5",
-        max_tokens:1024,
-        system:buildAiSystemPrompt(),
-        messages:history
-      })
-    });
-    const data=await resp.json();
+    const result=provider==="gemini"?await callGemini(turns,systemPrompt):await callAnthropic(turns,systemPrompt);
     aiChat.pop();
-    if(!resp.ok){
-      const msg=(data&&data.error&&data.error.message)||`Erro ${resp.status}`;
-      aiChat.push({role:"assistant",text:`Não consegui falar com a IA: ${msg}`});
-    }else{
-      const textOut=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n")||"(sem resposta)";
-      aiChat.push({role:"assistant",text:textOut});
-    }
+    aiChat.push({role:"assistant",text:result.ok?result.text:`Não consegui falar com a IA: ${result.text}`});
   }catch(e){
     aiChat.pop();
-    aiChat.push({role:"assistant",text:"Não consegui conectar à API da Anthropic. Verifique sua internet e sua chave em Configurações."});
+    aiChat.push({role:"assistant",text:"Não consegui conectar à API. Verifique sua internet e sua chave em Configurações."});
   }
   $("aiSendBtn").disabled=false;
   renderAiMessages();
