@@ -219,6 +219,8 @@ button.full{width:100%;margin-top:8px}
   border-radius:9px;padding:10px;font-size:14px;outline:none
 }
 .grid-2 input:focus,.grid-2 select:focus,#rir:focus{border-color:var(--accent)}
+.field-input{width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px;font-size:14px;outline:none;margin-top:2px}
+.field-input:focus{border-color:var(--accent)}
 .theme-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
 .theme-swatch{
   min-height:56px;border-radius:10px;border:2px solid var(--line);cursor:pointer;position:relative;overflow:hidden;
@@ -439,20 +441,25 @@ button.full{width:100%;margin-top:8px}
       <div class="info-item"><b>Google Gemini — grátis</b><br><span class="muted">Tem um nível gratuito de verdade, sem cartão de crédito, com limite generoso pra uso pessoal. Recomendado. Crie a chave em <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</span></div>
       <div class="info-item"><b>Anthropic Claude — pago</b><br><span class="muted">Dá US$5 de crédito só na criação da conta (expira em cerca de 30 dias); depois disso é cobrado por uso. Crie em <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.</span></div>
     </div>
-    <label>Provedor<select id="aiProvider" onchange="onAiProviderChange()">
+    <label>Provedor<select id="aiProvider" class="field-input" onchange="onAiProviderChange()">
       <option value="gemini">Google Gemini (grátis)</option>
       <option value="anthropic">Anthropic Claude (pago)</option>
     </select></label>
     <div id="aiGeminiFields">
-      <label class="block">Chave da API do Gemini<input id="aiKeyGemini" type="password" placeholder="AIza..." autocomplete="off"></label>
-      <label class="block">Modelo<select id="aiModelGemini">
-        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+      <label class="block">Chave da API do Gemini<input id="aiKeyGemini" class="field-input" type="password" placeholder="AIza..." autocomplete="off"></label>
+      <label class="block">Modelo<select id="aiModelGemini" class="field-input" onchange="onGeminiModelChange()">
+        <option value="gemini-2.5-flash">Gemini 2.5 Flash (recomendado)</option>
+        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (mais rápido)</option>
+        <option value="gemini-2.0-flash-001">Gemini 2.0 Flash</option>
         <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+        <option value="custom">Outro (digitar o nome do modelo)</option>
       </select></label>
+      <input id="aiModelGeminiCustom" class="field-input" style="display:none;margin-top:6px" placeholder="ex.: gemini-3.5-flash">
+      <p class="muted" style="font-size:11px;margin-top:6px">O app tenta se recuperar sozinho se o modelo escolhido for descontinuado, testando outras opções automaticamente. Se quiser forçar um modelo específico, use "Outro" e veja o nome atual em <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener">ai.google.dev/gemini-api/docs/models</a>.</p>
     </div>
     <div id="aiAnthropicFields" style="display:none">
-      <label class="block">Chave da API da Anthropic<input id="aiKeyAnthropic" type="password" placeholder="sk-ant-..." autocomplete="off"></label>
-      <label class="block">Modelo<select id="aiModelAnthropic">
+      <label class="block">Chave da API da Anthropic<input id="aiKeyAnthropic" class="field-input" type="password" placeholder="sk-ant-..." autocomplete="off"></label>
+      <label class="block">Modelo<select id="aiModelAnthropic" class="field-input">
         <option value="claude-sonnet-5">Sonnet — melhor qualidade</option>
         <option value="claude-haiku-4-5-20251001">Haiku — mais rápido e barato</option>
       </select></label>
@@ -740,9 +747,10 @@ function loadPlan(){
 
 let plan=loadPlan();
 let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]");
-let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.0-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5"},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
+let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5"},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
 if(settings.aiApiKey&&!settings.aiKeyAnthropic){settings.aiKeyAnthropic=settings.aiApiKey;settings.aiProvider="anthropic";}
 if(settings.aiModel&&settings.aiModelAnthropic==="claude-sonnet-5"){settings.aiModelAnthropic=settings.aiModel;}
+if(settings.aiModelGemini==="gemini-2.0-flash"){settings.aiModelGemini="gemini-2.5-flash";}
 let currentDay=localStorage.getItem("lvt_current")||localStorage.getItem("lvt_day")||(plan[0]&&plan[0].id);
 if(!plan.find(d=>d.id===currentDay))currentDay=plan[0]?plan[0].id:null;
 
@@ -1156,7 +1164,16 @@ function applyAppearance(){
   $("heightCm").value=settings.heightCm||"";
   $("aiProvider").value=settings.aiProvider||"gemini";
   $("aiKeyGemini").value=settings.aiKeyGemini||"";
-  $("aiModelGemini").value=settings.aiModelGemini||"gemini-2.0-flash";
+  const geminiModel=settings.aiModelGemini||"gemini-2.5-flash";
+  const knownGeminiModels=[...$("aiModelGemini").options].map(o=>o.value);
+  if(knownGeminiModels.includes(geminiModel)){
+    $("aiModelGemini").value=geminiModel;
+    $("aiModelGeminiCustom").style.display="none";
+  }else{
+    $("aiModelGemini").value="custom";
+    $("aiModelGeminiCustom").value=geminiModel;
+    $("aiModelGeminiCustom").style.display="block";
+  }
   $("aiKeyAnthropic").value=settings.aiKeyAnthropic||"";
   $("aiModelAnthropic").value=settings.aiModelAnthropic||"claude-sonnet-5";
   onAiProviderChange();
@@ -1194,10 +1211,14 @@ function onAiProviderChange(){
   $("aiGeminiFields").style.display=p==="gemini"?"block":"none";
   $("aiAnthropicFields").style.display=p==="anthropic"?"block":"none";
 }
+function onGeminiModelChange(){
+  $("aiModelGeminiCustom").style.display=$("aiModelGemini").value==="custom"?"block":"none";
+}
 function saveAiSettings(){
   settings.aiProvider=$("aiProvider").value;
   settings.aiKeyGemini=$("aiKeyGemini").value.trim();
-  settings.aiModelGemini=$("aiModelGemini").value;
+  const geminiSel=$("aiModelGemini").value;
+  settings.aiModelGemini=geminiSel==="custom"?($("aiModelGeminiCustom").value.trim()||"gemini-2.5-flash"):geminiSel;
   settings.aiKeyAnthropic=$("aiKeyAnthropic").value.trim();
   settings.aiModelAnthropic=$("aiModelAnthropic").value;
   saveAll();
@@ -1299,14 +1320,12 @@ async function callAnthropic(turns,systemPrompt){
   const textOut=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n")||"(sem resposta)";
   return {ok:true,text:textOut};
 }
-async function callGemini(turns,systemPrompt){
-  const contents=turns.map(m=>{
-    const parts=[];
-    if(m.image)parts.push({inline_data:{mime_type:m.image.media_type,data:m.image.data}});
-    parts.push({text:m.text});
-    return {role:m.role==="assistant"?"model":"user",parts};
-  });
-  const model=settings.aiModelGemini||"gemini-2.0-flash";
+const GEMINI_FALLBACK_MODELS=["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-2.0-flash-001","gemini-1.5-flash"];
+function isModelUnavailableError(msg){
+  msg=(msg||"").toLowerCase();
+  return msg.includes("no longer available")||msg.includes("not found for api")||msg.includes("not supported for generatecontent")||msg.includes("is not found");
+}
+async function callGeminiOnce(model,contents,systemPrompt){
   const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
     method:"POST",
     headers:{"content-type":"application/json","x-goog-api-key":settings.aiKeyGemini},
@@ -1317,6 +1336,30 @@ async function callGemini(turns,systemPrompt){
   const cand=data.candidates&&data.candidates[0];
   const text=cand&&cand.content&&cand.content.parts?cand.content.parts.filter(p=>p.text).map(p=>p.text).join("\n"):"(sem resposta — talvez o Gemini tenha recusado a resposta por segurança; tente reformular)";
   return {ok:true,text};
+}
+async function callGemini(turns,systemPrompt){
+  const contents=turns.map(m=>{
+    const parts=[];
+    if(m.image)parts.push({inline_data:{mime_type:m.image.media_type,data:m.image.data}});
+    parts.push({text:m.text});
+    return {role:m.role==="assistant"?"model":"user",parts};
+  });
+  const firstModel=settings.aiModelGemini||"gemini-2.5-flash";
+  const candidates=[firstModel,...GEMINI_FALLBACK_MODELS.filter(m=>m!==firstModel)];
+  let lastResult=null;
+  for(const model of candidates){
+    lastResult=await callGeminiOnce(model,contents,systemPrompt);
+    if(lastResult.ok){
+      if(model!==settings.aiModelGemini){
+        settings.aiModelGemini=model;
+        saveAll();
+        applyAppearance();
+      }
+      return lastResult;
+    }
+    if(!isModelUnavailableError(lastResult.text))return lastResult;
+  }
+  return lastResult;
 }
 async function sendAiMessage(){
   const text=$("aiInput").value.trim();

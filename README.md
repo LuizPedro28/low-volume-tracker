@@ -6,6 +6,13 @@ offline depois da primeira visita.
 
 ## O que mudou nesta versão
 
+- **Correção**: os campos de Provedor/Chave/Modelo do assistente de IA
+  estavam sem estilo (apareciam com a aparência padrão do navegador) — agora
+  seguem o visual do resto do app.
+- **Resiliência de modelo (Gemini)**: se o modelo configurado for
+  descontinuado pelo Google (já aconteceu com o `gemini-2.0-flash` durante o
+  desenvolvimento), o app agora tenta modelos alternativos automaticamente e
+  se autocorrige, em vez de simplesmente parar de funcionar.
 - **150 exercícios** na biblioteca (antes 108), cobrindo mais variações de
   peito, costas, ombros, braços, pernas, glúteos, core e condicionamento.
 - **Busca ao adicionar exercício**: em vez de um dropdown gigante, agora abre
@@ -114,11 +121,23 @@ IA. Tem dois provedores para escolher:
   em Configurações.
 - Fotos enviadas ao assistente são redimensionadas no próprio navegador antes
   de serem enviadas, para economizar dados e custo/cota.
-- Se um dia o nome do modelo escolhido parar de funcionar (provedores
-  descontinuam modelos de tempos em tempos), veja o nome atual no site do
-  provedor (Google AI Studio ou console da Anthropic) e ajuste a opção
-  correspondente no arquivo `index.html`, na função `applyAppearance` /
-  nos `<select>` de modelo em Configurações.
+
+### Modelos de IA mudam com frequência — o app se auto-corrige (só para o Gemini)
+
+Provedores de IA descontinuam modelos com uma certa regularidade (já
+aconteceu durante o desenvolvimento deste próprio app: o `gemini-2.0-flash`
+foi desativado pelo Google). Por isso, para o Gemini, o app **tenta se
+recuperar sozinho**: se o modelo configurado não estiver mais disponível, ele
+tenta automaticamente uma lista de modelos alternativos recentes e, ao achar
+um que funcione, atualiza a configuração sozinho para não precisar repetir
+isso na próxima mensagem.
+
+Se quiser forçar um modelo específico (por exemplo, um modelo novo que ainda
+não está na lista do app), escolha "Outro" no seletor de modelo do Gemini em
+Configurações e digite o nome exato — veja a lista atual em
+[ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models).
+Isso não existe para o Claude ainda, então se o modelo escolhido da Anthropic
+parar de funcionar, é preciso trocar manualmente no seletor.
 
 ## Como rodar localmente
 
