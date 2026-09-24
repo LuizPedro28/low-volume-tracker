@@ -1,6 +1,6 @@
 // Bump this version string whenever you deploy new content,
 // so users' browsers pick up the update instead of the old cache.
-const CACHE_NAME = "lvt-cache-v5";
+const CACHE_NAME = "lvt-cache-v6";
 
 const CORE_ASSETS = [
   "./",
