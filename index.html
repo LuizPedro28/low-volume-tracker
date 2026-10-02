@@ -216,6 +216,10 @@ button.full{width:100%;margin-top:8px}
 }
 .ai-input-row textarea:focus{border-color:var(--accent)}
 .lib-desc{margin-top:8px;font-size:12px}
+.ex-hint{font-size:12px;margin:8px 0 0;line-height:1.5}
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:12px 0}
+.sum-grid div{background:var(--surface-2);border-radius:10px;padding:10px}
+.sum-grid b{display:block;font-size:18px}
 
 /* config */
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -376,6 +380,7 @@ button.full{width:100%;margin-top:8px}
       <option value="">Todas as academias</option>
     </select>
   </div>
+  <div class="card" id="prCard"></div>
   <div class="card">
     <h2>Evolução por exercício</h2>
     <select id="chartExerciseSelect" class="search-input" onchange="renderExerciseChart()"></select>
@@ -420,6 +425,16 @@ button.full{width:100%;margin-top:8px}
     <h2>Instalar como app</h2>
     <p class="muted">No Android/Chrome, toque em "Instalar app" abaixo. No iPhone/iPad, use Compartilhar → "Adicionar à Tela de Início" pelo Safari. Depois de instalado, o tracker abre em tela cheia e funciona offline.</p>
     <div class="actions"><button type="button" id="installBtn" class="primary" style="display:none" onclick="installApp()">⬇ Instalar app</button></div>
+  </div>
+  <div class="card">
+    <h2>Backup dos dados</h2>
+    <p class="muted">Seus treinos ficam só neste aparelho. Exporte um arquivo para guardar ou levar para outro celular. As chaves de API não entram no arquivo.</p>
+    <p class="muted" id="backupInfo" style="font-size:12px"></p>
+    <div class="actions">
+      <button type="button" class="primary" onclick="exportData()">⬇ Exportar backup</button>
+      <button type="button" onclick="$('importFile').click()">⬆ Importar backup</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(this.files[0])">
+    </div>
   </div>
   <div class="card">
     <h2>Aparência</h2>
@@ -473,7 +488,8 @@ button.full{width:100%;margin-top:8px}
       </div>
       <p id="aiTestResult" class="muted" style="font-size:12px;margin-top:8px"></p>
       <label class="block">Modelo<select id="aiModelGemini" class="field-input" onchange="onGeminiModelChange()">
-        <option value="gemini-2.5-flash">Gemini 2.5 Flash (recomendado)</option>
+        <option value="gemini-flash-latest">Gemini Flash (sempre o mais novo)</option>
+        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
         <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (mais rápido)</option>
         <option value="custom">Outro (digitar o nome do modelo)</option>
       </select></label>
@@ -482,8 +498,10 @@ button.full{width:100%;margin-top:8px}
     </div>
     <div id="aiAnthropicFields" style="display:none">
       <label class="block">Chave da API da Anthropic<input id="aiKeyAnthropic" class="field-input" type="password" placeholder="sk-ant-..." autocomplete="off"></label>
+      <div class="actions" style="margin-top:8px"><button type="button" id="testAnthropicBtn" onclick="testAnthropicKey()">🔎 Testar chave e buscar modelos</button></div>
+      <p id="aiTestResultA" class="muted" style="font-size:12px;margin-top:8px"></p>
       <label class="block">Modelo<select id="aiModelAnthropic" class="field-input">
-        <option value="claude-sonnet-5">Sonnet — melhor qualidade</option>
+        <option value="claude-sonnet-5-5">Sonnet — melhor qualidade</option>
         <option value="claude-haiku-4-5-20251001">Haiku — mais rápido e barato</option>
       </select></label>
     </div>
@@ -545,6 +563,7 @@ button.full{width:100%;margin-top:8px}
   </div>
 </div>
 
+<div class="modal" id="summaryModal"><div class="modalbox"><h2>Treino concluído 💪</h2><div id="summaryBody"></div><div class="actions"><button type="button" class="primary" onclick="closeM('summaryModal')">Fechar</button></div></div></div>
 <div class="toast" id="toast"></div>
 
 <div class="timer-widget">
@@ -772,11 +791,12 @@ function loadPlan(){
 
 let plan=loadPlan();
 let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]");
-let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5",gyms:[]},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
+let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5-5",gyms:[]},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
 let currentGym=localStorage.getItem("lvt_current_gym")||"";
 let currentRating=0;
 if(settings.aiApiKey&&!settings.aiKeyAnthropic){settings.aiKeyAnthropic=settings.aiApiKey;settings.aiProvider="anthropic";}
 if(settings.aiModel&&settings.aiModelAnthropic==="claude-sonnet-5"){settings.aiModelAnthropic=settings.aiModel;}
+if(settings.aiModelAnthropic==="claude-sonnet-5")settings.aiModelAnthropic="claude-sonnet-5-5";
 if(settings.aiModelGemini==="gemini-2.0-flash"){settings.aiModelGemini="gemini-2.5-flash";}
 let currentDay=localStorage.getItem("lvt_current")||localStorage.getItem("lvt_day")||(plan[0]&&plan[0].id);
 if(!plan.find(d=>d.id===currentDay))currentDay=plan[0]?plan[0].id:null;
@@ -798,7 +818,7 @@ function showView(id,btn){
   if(btn)btn.classList.add("active");else document.querySelector(`.nav-tabs button[data-view="${id}"]`)?.classList.add("active");
   if(id==="historico")renderHistory();
   if(id==="exercicios")renderLibrary();
-  if(id==="config")markThemeActive();
+  if(id==="config"){markThemeActive();renderBackupInfo();}
   if(id==="ia"){renderAiMessages();const hasKey=settings.aiProvider==="gemini"?!!settings.aiKeyGemini:!!settings.aiKeyAnthropic;$("aiKeyWarning").style.display=hasKey?"none":"block";}
 }
 function closeM(id){$(id).classList.remove("open");}
@@ -889,13 +909,17 @@ function renderTreino(){
 
 function exerciseRow(e,i,draft){
   const info=find(e[0]);
+  const last=lastSessionFor(e[0]);
+  const prevRows=last?last.rows:[];
+  const hint=progressionHint(e[0],e[1]);
   let rows="";
   for(let s=0;s<e[2];s++){
     const v=(draft[i]||[])[s]||{};
+    const pv=prevRows[s]||{};
     rows+=`<div class="set">
       <span class="set-index">${s+1}</span>
-      <input class="kg" type="number" step=".5" inputmode="decimal" value="${v.kg||""}" placeholder="${esc(settings.unit)}">
-      <input class="reps" type="number" inputmode="numeric" value="${v.reps||""}" placeholder="${esc(e[1])}">
+      <input class="kg" type="number" step=".5" inputmode="decimal" value="${v.kg||""}" placeholder="${pv.kg?pv.kg:esc(settings.unit)}">
+      <input class="reps" type="number" inputmode="numeric" value="${v.reps||""}" placeholder="${pv.reps?pv.reps:esc(e[1])}">
       <input class="rr" type="number" min="0" max="5" value="${v.rir??""}" placeholder="${esc(String(settings.rir))}">
       <button type="button" class="ok ${v.done?"on":""}" data-action="toggle" data-idx="${i}" data-set="${s}" aria-label="Marcar série ${s+1} concluída">✓</button>
     </div>`;
@@ -908,17 +932,21 @@ function exerciseRow(e,i,draft){
       </div>
       <button type="button" class="ghost guide-btn" data-action="guide" data-name="${esc(e[0])}">Ver execução</button>
     </div>
+    ${hint?`<p class="ex-hint muted">Última vez: ${esc(hint.sets)} (${esc(hint.date)})${hint.tip?`<br>${esc(hint.tip)}`:""}</p>`:""}
     <div class="set-labels"><span>Nº</span><span>Carga</span><span>Reps</span><span>RIR</span><span></span></div>
     ${rows}
     <div class="actions">
       <button type="button" data-action="add-set" data-idx="${i}">+ Série</button>
       <button type="button" data-action="remove-set" data-idx="${i}">− Série</button>
+      ${prevRows.length?`<button type="button" data-action="copy-last" data-idx="${i}">↺ Copiar última</button>`:""}
     </div>
   </div>`;
 }
 
+function startKey(){return "lvt_start_"+currentDay;}
 function syncDraft(){
   const d=curDay();if(!d||d.rest)return;
+  if(!localStorage.getItem(startKey()))localStorage.setItem(startKey(),String(Date.now()));
   const draft={};
   document.querySelectorAll("#list .ex").forEach((card,i)=>{
     draft[i]=[...card.querySelectorAll(".set")].map(r=>({
@@ -937,6 +965,12 @@ function toggleSet(i,s,btn){
   draft[i][s].done=turningOn;
   localStorage.setItem(draftKey(),JSON.stringify(draft));
   btn.classList.toggle("on");
+  if(turningOn){
+    const row=btn.closest(".set");const name=curDay().ex[i][0];
+    const kg=+row.querySelector(".kg").value||0,reps=+row.querySelector(".reps").value||0;
+    const b=bestsFor(name);
+    if(kg&&reps&&(b.kg||b.e)&&(kg>b.kg||e1rm(kg,reps)>b.e*1.001))toast("🏆 Novo recorde pessoal!");
+  }
   if(turningOn&&settings.autoTimer){
     setPresetTimer(timerDuration);
     startPauseTimer();
@@ -960,13 +994,137 @@ function finishSession(){
     if(v.done||v.kg||v.reps)rowsOut.push({exercise:e[0],set:s+1,kg:+v.kg||0,reps:+v.reps||0,rir:v.rir===""?+settings.rir:(+v.rir||0)});
   }));
   if(!rowsOut.length){toast("Preencha ou marque ao menos uma série.");return;}
-  logs.unshift({date:new Date().toISOString(),dayId:d.id,name:d.name,rows:rowsOut,gym:currentGym||null,rating:currentRating||0});
+  const prs=[];
+  d.ex.forEach(e=>{
+    const cur=rowsOut.filter(r=>r.exercise===e[0]);
+    if(!cur.length||!logs.some(l=>l.rows.some(r=>r.exercise===e[0])))return;
+    const b=bestsFor(e[0]);
+    const ck=Math.max(...cur.map(r=>r.kg)),ce=Math.max(...cur.map(r=>e1rm(r.kg,r.reps)));
+    if(ck>b.kg)prs.push(`${e[0]}: carga ${ck} ${settings.unit}`);
+    else if(ce>b.e*1.001)prs.push(`${e[0]}: 1RM estimado ${ce.toFixed(1)} ${settings.unit}`);
+  });
+  const prevLog=logs.find(p=>p.dayId===d.id);
+  const start=+localStorage.getItem(startKey())||0;
+  const dur=start?Math.max(1,Math.round((Date.now()-start)/60000)):0;
+  const entry={date:new Date().toISOString(),dayId:d.id,name:d.name,rows:rowsOut,gym:currentGym||null,rating:currentRating||0,dur};
+  logs.unshift(entry);
   localStorage.removeItem(draftKey());
+  localStorage.removeItem(startKey());
   currentRating=0;
   saveAll();
   renderTreino();
   renderHistory();
-  toast("Treino salvo!");
+  showSummary(entry,prevLog,prs);
+}
+function showSummary(entry,prevLog,prs){
+  const vol=sessionVolume(entry);
+  let cmp="—";
+  if(prevLog){const pv=sessionVolume(prevLog);if(pv>0){const pct=(vol-pv)/pv*100;cmp=`<span class="${pct>=0?"pos":"neg"}">${pct>0?"+":""}${pct.toFixed(1)}%</span>`;}}
+  $("summaryBody").innerHTML=`<p class="muted">${esc(entry.name)}</p>
+    <div class="sum-grid">
+      <div><span class="muted tiny">Duração</span><b>${entry.dur?entry.dur+" min":"—"}</b></div>
+      <div><span class="muted tiny">Séries</span><b>${entry.rows.length}</b></div>
+      <div><span class="muted tiny">Volume</span><b>${Math.round(vol).toLocaleString("pt-BR")}</b></div>
+      <div><span class="muted tiny">vs. anterior</span><b>${cmp}</b></div>
+    </div>
+    ${prs.length?`<h3>🏆 Recordes batidos</h3><div class="info-list">${prs.map(x=>`<div class="info-item">${esc(x)}</div>`).join("")}</div>`:`<p class="muted">Nenhum recorde desta vez. Consistência também conta.</p>`}`;
+  $("summaryModal").classList.add("open");
+}
+function deleteLog(date){
+  if(!confirm("Excluir esta sessão do histórico?"))return;
+  logs=logs.filter(l=>l.date!==date);saveAll();renderHistory();toast("Sessão excluída.");
+}
+
+/* ---------- desempenho anterior, progressão, PRs ---------- */
+const e1rm=(kg,reps)=>kg>0&&reps>0?kg*(1+reps/30):0;
+function lastSessionFor(name){
+  for(const l of logs){const rows=l.rows.filter(r=>r.exercise===name);if(rows.length)return {log:l,rows};}
+  return null;
+}
+function bestsFor(name){
+  let kg=0,e=0;
+  logs.forEach(l=>l.rows.forEach(r=>{if(r.exercise!==name)return;kg=Math.max(kg,r.kg||0);e=Math.max(e,e1rm(r.kg,r.reps));}));
+  return {kg,e};
+}
+function repRange(txt){const m=String(txt).match(/(\d+)\D+(\d+)/);return m?[+m[1],+m[2]]:[0,0];}
+function progressionHint(name,range){
+  const last=lastSessionFor(name);if(!last)return null;
+  const sets=last.rows.map(r=>`${r.kg||"—"}×${r.reps||"—"}`).join(" · ");
+  const date=new Date(last.log.date).toLocaleDateString("pt-BR");
+  const rows=last.rows.filter(r=>r.kg>0);
+  let tip="";
+  if(rows.length){
+    const [lo,hi]=repRange(range);
+    const top=Math.max(...rows.map(r=>r.kg));
+    const avgRir=rows.reduce((a,r)=>a+r.rir,0)/rows.length;
+    const step=settings.unit==="lb"?5:2.5;
+    if(hi&&rows.every(r=>r.reps>=hi)&&avgRir<=1.5)tip=`💡 Bateu o topo da faixa: tente ${top+step} ${settings.unit}.`;
+    else if(lo&&rows.some(r=>r.reps<lo))tip=`💡 Ficou abaixo da faixa: mantenha ${top} ${settings.unit} e busque mais reps.`;
+    else tip=`💡 Mantenha ${top} ${settings.unit} e tente +1 rep em cada série.`;
+    const hist=logs.map(l=>l.rows.filter(r=>r.exercise===name)).filter(r=>r.length).slice(0,3);
+    if(hist.length===3){
+      const b=hist.map(rs=>Math.max(...rs.map(r=>e1rm(r.kg,r.reps))));
+      if(b[0]<=b[1]+0.01&&b[1]<=b[2]+0.01)tip="⚠️ 3 sessões sem evoluir: considere deload (−10%) ou trocar a variação.";
+    }
+  }
+  return {sets,date,tip};
+}
+function copyLast(i){
+  const e=curDay().ex[i];const last=lastSessionFor(e[0]);if(!last)return;
+  const card=document.querySelectorAll("#list .ex")[i];
+  [...card.querySelectorAll(".set")].forEach((r,s)=>{
+    const pv=last.rows[s]||last.rows[last.rows.length-1];
+    if(!r.querySelector(".kg").value&&pv.kg)r.querySelector(".kg").value=pv.kg;
+    if(!r.querySelector(".reps").value&&pv.reps)r.querySelector(".reps").value=pv.reps;
+  });
+  syncDraft();toast("Valores da última sessão copiados.");
+}
+function renderPRs(){
+  const map={};
+  logs.forEach(l=>l.rows.forEach(r=>{
+    const m=map[r.exercise]||(map[r.exercise]={kg:0,kgDate:"",e:0,eDate:""});
+    if(r.kg>m.kg){m.kg=r.kg;m.kgDate=l.date;}
+    const e=e1rm(r.kg,r.reps);if(e>m.e){m.e=e;m.eDate=l.date;}
+  }));
+  const names=Object.keys(map).filter(n=>map[n].kg>0).sort((a,b)=>map[b].e-map[a].e);
+  $("prCard").innerHTML=`<h2>🏆 Meus recordes</h2>`+(names.length?`<p class="muted">Maior carga e 1RM estimado (fórmula de Epley).</p><div class="log-rows">${names.map(n=>`<div class="log-row"><span>${esc(n)}</span><span>${map[n].kg} ${esc(settings.unit)} <span class="muted">· 1RM ≈ ${map[n].e.toFixed(1)}</span></span></div>`).join("")}</div>`:`<p class="muted">Seus recordes aparecem aqui depois do primeiro treino salvo.</p>`);
+}
+
+/* ---------- backup ---------- */
+function exportData(){
+  const st={...settings};delete st.aiKeyGemini;delete st.aiKeyAnthropic;delete st.aiApiKey;
+  const data={app:"lvt",version:1,exportedAt:new Date().toISOString(),plan,logs,settings:st,currentGym};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`lvt-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  localStorage.setItem("lvt_last_backup",String(Date.now()));
+  renderBackupInfo();toast("Backup exportado.");
+}
+function importData(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data||data.app!=="lvt"||!Array.isArray(data.plan)||!Array.isArray(data.logs))throw new Error("formato");
+      if(!confirm(`Importar ${data.logs.length} sessão(ões) e ${data.plan.length} dia(s)? Isso substitui os dados atuais deste aparelho.`))return;
+      plan=data.plan;logs=data.logs;
+      settings=Object.assign({},settings,data.settings||{},{aiKeyGemini:settings.aiKeyGemini,aiKeyAnthropic:settings.aiKeyAnthropic});
+      if(data.currentGym!=null)localStorage.setItem("lvt_current_gym",data.currentGym);
+      currentDay=plan[0]?plan[0].id:null;
+      if(currentDay)localStorage.setItem("lvt_current",currentDay);
+      saveAll();toast("Backup importado!");setTimeout(()=>location.reload(),700);
+    }catch(err){toast("Arquivo de backup inválido.");}
+  };
+  reader.readAsText(file);
+  $("importFile").value="";
+}
+function renderBackupInfo(){
+  const t=+localStorage.getItem("lvt_last_backup")||0;
+  $("backupInfo").textContent=t?`Último backup: ${new Date(t).toLocaleDateString("pt-BR")}.`:"Você ainda não fez nenhum backup.";
 }
 
 /* ---------- editar exercícios do dia ---------- */
@@ -1149,11 +1307,13 @@ function renderHistory(){
         ${l.gym?`<span class="badge">📍 ${esc(l.gym)}</span>`:""}
         ${deltaBadge}
         ${stars?`<span class="badge">${stars}</span>`:""}
+        ${l.dur?`<span class="badge">⏱ ${l.dur} min</span>`:""}
       </div>
-      <p class="muted" style="margin:0 0 8px">${l.rows.length} séries registradas</p>
+      <div class="row between" style="margin:0 0 8px"><p class="muted" style="margin:0">${l.rows.length} séries registradas</p><button type="button" class="ghost" style="font-size:11px;padding:4px 8px" data-action="del-log" data-date="${esc(l.date)}">Excluir</button></div>
       <div class="log-rows">${l.rows.map(r=>`<div class="log-row"><span>${esc(r.exercise)}</span><span>${r.kg||"—"} ${esc(settings.unit)} × ${r.reps||"—"} <span class="muted">RIR ${r.rir}</span></span></div>`).join("")}</div>
     </div>`;
   }).join(""):emptyState("📓","Nenhum treino salvo ainda","Finalize uma sessão em Treino para começar seu histórico.");
+  renderPRs();
   populateChartExerciseSelect();
   renderExerciseChart();
 }
@@ -1292,7 +1452,7 @@ function applyAppearance(){
     $("aiModelGeminiCustom").style.display="block";
   }
   $("aiKeyAnthropic").value=settings.aiKeyAnthropic||"";
-  $("aiModelAnthropic").value=settings.aiModelAnthropic||"claude-sonnet-5";
+  $("aiModelAnthropic").value=settings.aiModelAnthropic||"claude-sonnet-5-5";
   onAiProviderChange();
   computeAndShowBmi();
   markThemeActive();
@@ -1354,7 +1514,7 @@ function renderAiMessages(){
     </div>`).join(""):`<p class="muted" style="padding:10px 2px">Pergunte algo como "monta um treino de push focado em ombro" ou envie uma foto para receber feedback sobre seu físico.</p>`;
   box.scrollTop=box.scrollHeight;
 }
-function saveAiChat(){localStorage.setItem("lvt_ai_chat",JSON.stringify(aiChat.slice(-40)));}
+function saveAiChat(){try{localStorage.setItem("lvt_ai_chat",JSON.stringify(aiChat.slice(-30).map(m=>m.image?{...m,image:null}:m)));}catch(e){}}
 function clearAiChat(){
   if(!confirm("Apagar toda a conversa com o assistente?"))return;
   aiChat=[];saveAiChat();renderAiMessages();
@@ -1426,14 +1586,14 @@ async function callAnthropic(turns,systemPrompt){
       "anthropic-dangerous-direct-browser-access":"true"
     },
     body:JSON.stringify({
-      model:settings.aiModelAnthropic||"claude-sonnet-5",
+      model:settings.aiModelAnthropic||"claude-sonnet-5-5",
       max_tokens:1024,
       system:systemPrompt,
       messages
     })
   });
   const data=await resp.json();
-  if(!resp.ok)return {ok:false,text:(data&&data.error&&data.error.message)||`Erro ${resp.status}`};
+  if(!resp.ok)return {ok:false,text:friendlyAiError(resp.status,data&&data.error&&data.error.message)};
   const textOut=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n")||"(sem resposta)";
   return {ok:true,text:textOut};
 }
@@ -1456,11 +1616,52 @@ async function fetchGeminiModels(key){
   }
 }
 function sortGeminiModels(models){
-  return [...models].sort((a,b)=>{
-    const af=a.includes("flash")?0:1,bf=b.includes("flash")?0:1;
-    if(af!==bf)return af-bf;
-    return a.localeCompare(b);
+  // só modelos de conversa de texto; tira tts/imagem/áudio/embedding/experimentais,
+  // que também aceitam generateContent mas quebram o chat
+  const bad=/(tts|image|live|audio|embedding|robotics|computer-use|aqa|imagen|veo|native|-exp)/;
+  const order=[/^gemini-flash-latest$/,/^gemini-2\.5-flash$/,/^gemini-2\.5-flash-lite$/,/^gemini-flash-lite-latest$/,/flash/,/pro/];
+  const rank=m=>{const i=order.findIndex(r=>r.test(m));return i<0?99:i;};
+  return models.filter(m=>/^gemini-/.test(m)&&!bad.test(m)).sort((a,b)=>rank(a)-rank(b)||a.localeCompare(b));
+}
+function friendlyAiError(status,msg){
+  msg=msg||"";
+  if(status===429||/quota|rate.?limit|RESOURCE_EXHAUSTED/i.test(msg)){
+    return /limit:\s*0/.test(msg)?"Esta chave não tem cota gratuita liberada. Crie uma nova em aistudio.google.com/apikey usando 'Create API key in new project'.":"Limite de uso atingido. Espere cerca de 1 minuto e tente de novo.";
+  }
+  if(status===503||/overloaded|UNAVAILABLE/i.test(msg))return "O servidor da IA está sobrecarregado agora. Tente de novo em instantes.";
+  if(status===401||status===403||/api key|permission|authentication/i.test(msg))return `Chave recusada pelo provedor (${msg||status}). Confira se copiou a chave inteira.`;
+  return msg||`Erro ${status}`;
+}
+function cleanTurns(raw){
+  const out=[];
+  const ok=raw.filter(m=>m.text&&m.text!=="…"&&!m.err&&!/^Não consegui (falar|conectar)/.test(m.text));
+  ok.forEach((m,i)=>{
+    const t={role:m.role==="user"?"user":"assistant",text:m.text,image:i===ok.length-1?m.image:null};
+    const prev=out[out.length-1];
+    if(prev&&prev.role===t.role){prev.text+="\n\n"+t.text;if(t.image)prev.image=t.image;}else out.push(t);
   });
+  while(out.length&&out[0].role!=="user")out.shift();
+  return out;
+}
+async function testAnthropicKey(){
+  const key=$("aiKeyAnthropic").value.trim();
+  if(!key){toast("Cole a chave da Anthropic primeiro.");return;}
+  const btn=$("testAnthropicBtn"),out=$("aiTestResultA"),old=btn.textContent;
+  btn.disabled=true;btn.textContent="Testando...";out.textContent="";
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/models?limit=100",{headers:{"x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"}});
+    const data=await resp.json();
+    if(!resp.ok)throw new Error(friendlyAiError(resp.status,data&&data.error&&data.error.message));
+    const ids=(data.data||[]).map(m=>m.id).filter(id=>/^claude-/.test(id));
+    if(!ids.length)throw new Error("A chave é válida, mas nenhum modelo foi listado.");
+    const sel=$("aiModelAnthropic");
+    sel.innerHTML=ids.map(id=>`<option value="${esc(id)}">${esc(id)}</option>`).join("");
+    sel.value=ids.includes(settings.aiModelAnthropic)?settings.aiModelAnthropic:(ids.find(i=>/sonnet/.test(i))||ids[0]);
+    saveAiSettings();
+    const r=await callAnthropic([{role:"user",text:"Responda apenas: ok"}],"Você é um teste de conexão.");
+    out.innerHTML=r.ok?`<span style="color:var(--success)">✅ Funcionando com "${esc(sel.value)}".</span>`:`<span style="color:var(--danger)">❌ ${esc(r.text)}</span>`;
+  }catch(e){out.innerHTML=`<span style="color:var(--danger)">❌ ${esc(e.message||"Falha de conexão")}</span>`;}
+  btn.disabled=false;btn.textContent=old;
 }
 function populateGeminiModelSelect(models,preferred){
   const sel=$("aiModelGemini");
@@ -1483,21 +1684,24 @@ async function testGeminiKey(){
   }else if(!r.models.length){
     $("aiTestResult").innerHTML=`<span style="color:var(--danger)">❌ A chave é válida, mas nenhum modelo de conversa está disponível para ela.</span><br>Isso costuma significar que a chave foi criada por um caminho diferente do Google AI Studio (ex.: direto no Google Cloud Console, sem a API habilitada).`;
   }else{
-    populateGeminiModelSelect(r.models,settings.aiModelGemini);
-    settings.aiModelGemini=$("aiModelGemini").value;
-    saveAll();
-    $("aiTestResult").innerHTML=`<span style="color:var(--success)">✅ Chave válida! ${r.models.length} modelo(s) disponível(is) — selecionei "${esc(settings.aiModelGemini)}" para você.</span>`;
+        const usable=sortGeminiModels(r.models);
+    if(usable.length)populateGeminiModelSelect(usable,usable.includes(settings.aiModelGemini)?settings.aiModelGemini:usable[0]);
+    settings.aiKeyGemini=key;settings.aiModelGemini=$("aiModelGemini").value;saveAll();
+    const ping=await callGemini([{role:"user",text:"Responda apenas: ok"}],"Você é um teste de conexão.");
+    $("aiTestResult").innerHTML=ping.ok?`<span style="color:var(--success)">✅ Funcionando com "${esc(settings.aiModelGemini)}".</span>`:`<span style="color:var(--danger)">❌ A chave é válida, mas o teste de mensagem falhou: ${esc(ping.text)}</span>`;
   }
   btn.disabled=false;btn.textContent=oldLabel;
 }
 async function callGeminiOnce(model,contents,systemPrompt){
-  const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
+  const doFetch=()=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
     method:"POST",
     headers:{"content-type":"application/json","x-goog-api-key":settings.aiKeyGemini},
-    body:JSON.stringify({system_instruction:{parts:[{text:systemPrompt}]},contents})
+    body:JSON.stringify({system_instruction:{parts:[{text:systemPrompt}]},contents,generationConfig:{maxOutputTokens:2048}})
   });
+  let resp=await doFetch();
+  if(resp.status===503){await new Promise(r=>setTimeout(r,1500));resp=await doFetch();}
   const data=await resp.json();
-  if(!resp.ok)return {ok:false,text:(data&&data.error&&data.error.message)||`Erro ${resp.status}`};
+  if(!resp.ok){const raw=(data&&data.error&&data.error.message)||"";return {ok:false,text:isModelUnavailableError(raw)?raw:friendlyAiError(resp.status,raw)};}
   const cand=data.candidates&&data.candidates[0];
   const text=cand&&cand.content&&cand.content.parts?cand.content.parts.filter(p=>p.text).map(p=>p.text).join("\n"):"(sem resposta — talvez o Gemini tenha recusado a resposta por segurança; tente reformular)";
   return {ok:true,text};
@@ -1518,7 +1722,7 @@ async function callGemini(turns,systemPrompt){
   // realmente pode usar agora, em vez de continuar chutando nomes fixos
   const listing=await fetchGeminiModels(settings.aiKeyGemini);
   if(!listing.ok||!listing.models.length)return result;
-  for(const model of sortGeminiModels(listing.models)){
+  for(const model of sortGeminiModels(listing.models).slice(0,4)){
     if(model===firstModel)continue;
     const r2=await callGeminiOnce(model,contents,systemPrompt);
     if(r2.ok){
@@ -1551,15 +1755,15 @@ async function sendAiMessage(){
   $("aiSendBtn").disabled=true;
 
   const systemPrompt=buildAiSystemPrompt();
-  const turns=aiChat.slice(0,-1).slice(-10);
+  const turns=cleanTurns(aiChat.slice(0,-1).slice(-12));
 
   try{
     const result=provider==="gemini"?await callGemini(turns,systemPrompt):await callAnthropic(turns,systemPrompt);
     aiChat.pop();
-    aiChat.push({role:"assistant",text:result.ok?result.text:`Não consegui falar com a IA: ${result.text}`});
+    aiChat.push({role:"assistant",text:result.ok?result.text:`Não consegui falar com a IA: ${result.text}`,err:!result.ok});
   }catch(e){
     aiChat.pop();
-    aiChat.push({role:"assistant",text:"Não consegui conectar à API. Verifique sua internet e sua chave em Configurações."});
+    aiChat.push({role:"assistant",text:`Não consegui conectar à API (${e&&e.message?e.message:"sem detalhes"}). Verifique a internet e a chave em Configurações.`,err:true});
   }
   $("aiSendBtn").disabled=false;
   renderAiMessages();
@@ -1573,9 +1777,11 @@ $("list").addEventListener("click",e=>{
   if(action==="toggle")toggleSet(idx,+t.dataset.set,t);
   else if(action==="add-set")changeSeries(idx,1);
   else if(action==="remove-set")changeSeries(idx,-1);
+  else if(action==="copy-last")copyLast(idx);
   else if(action==="guide")guide(t.dataset.name);
 });
 $("list").addEventListener("input",syncDraft);
+$("hist").addEventListener("click",e=>{const t=e.target.closest('[data-action="del-log"]');if(!t)return;deleteLog(t.dataset.date);});
 $("ratingStars").addEventListener("click",e=>{
   const t=e.target.closest('[data-action="rate"]');if(!t)return;
   const n=+t.dataset.n;
@@ -1780,6 +1986,7 @@ if("serviceWorker" in navigator){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});
   });
 }
+setTimeout(()=>{const t=+localStorage.getItem("lvt_last_backup")||0;if(logs.length>=3&&Date.now()-t>30*864e5)toast("Faz tempo sem backup. Exporte em Config.");},2500);
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{
   e.preventDefault();

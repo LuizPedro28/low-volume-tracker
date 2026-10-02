@@ -1,6 +1,6 @@
 // Bump this version string whenever you deploy new content,
 // so users' browsers pick up the update instead of the old cache.
-const CACHE_NAME = "lvt-cache-v7";
+const CACHE_NAME = "lvt-cache-v8";
 
 const CORE_ASSETS = [
   "./",
@@ -36,6 +36,8 @@ self.addEventListener("activate", (event) => {
 // e atualiza o cache em segundo plano quando há rede disponível.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  // não intercepta chamadas a outros domínios (APIs de IA, fontes)
+  if (new URL(event.request.url).origin !== self.location.origin) return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
