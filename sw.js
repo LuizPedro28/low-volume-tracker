@@ -1,6 +1,6 @@
 // Bump this version string whenever you deploy new content,
 // so users' browsers pick up the update instead of the old cache.
-const CACHE_NAME = "lvt-cache-v9";
+const CACHE_NAME = "lvt-cache-v10";
 
 const CORE_ASSETS = [
   "./",
@@ -26,7 +26,7 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+        Promise.all(keys.filter((k) => k !== CACHE_NAME && k !== "lvt-config").map((k) => caches.delete(k)))
       )
       .then(() => self.clients.claim())
   );
@@ -53,4 +53,27 @@ self.addEventListener("fetch", (event) => {
       return cached || network;
     })
   );
+});
+
+// lembrete de treino em segundo plano (Chrome/Android com app instalado)
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "lvt-remind") event.waitUntil(remindFromSW());
+});
+async function remindFromSW() {
+  const c = await caches.open("lvt-config");
+  const r = await c.match("cfg");
+  if (!r) return;
+  const cfg = await r.json();
+  const n = new Date();
+  const key = n.getFullYear() + "-" + (n.getMonth() + 1) + "-" + n.getDate();
+  const [h, m] = cfg.time.split(":").map(Number);
+  if (!cfg.on || !cfg.days.includes(n.getDay()) || n.getHours() * 60 + n.getMinutes() < h * 60 + m) return;
+  if (cfg.trained === key || cfg.notified === key) return;
+  cfg.notified = key;
+  await c.put("cfg", new Response(JSON.stringify(cfg)));
+  await self.registration.showNotification("Hora de treinar 💪", { body: "Próximo: " + cfg.next, icon: "icons/icon-192.png", tag: "lvt-remind" });
+}
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(clients.matchAll({ type: "window" }).then((cs) => (cs.length ? cs[0].focus() : clients.openWindow("./"))));
 });

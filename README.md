@@ -6,6 +6,12 @@ offline depois da primeira visita.
 
 ## O que mudou nesta versão
 
+- **Fotos de progresso** com comparação lado a lado (guardadas no aparelho, fora do backup).
+- **Sincronização entre aparelhos** via Gist privado do GitHub (token só com permissão `gist`).
+- **Perfis** separados no mesmo aparelho.
+- **Lembretes de treino** (aviso no app + notificação; em segundo plano só no Chrome/Android instalado).
+- **Modo foco**: um exercício por vez, botões grandes, tela sempre ligada.
+
 - **Painel semanal** (Histórico): meta de treinos, sequência de semanas, calendário heatmap e séries por músculo.
 - **Modelos prontos** (PPL, Upper/Lower, Full Body, ABC), **calculadora de anilhas**, **reordenar exercícios**, **superset**, **anotação por exercício** e **descanso automático por exercício**.
 - **Peso corporal com gráfico** e **medidas** (Config → Avaliação física).

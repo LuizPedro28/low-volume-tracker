@@ -219,6 +219,18 @@ button.full{width:100%;margin-top:8px}
 .heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);grid-auto-columns:14px;gap:3px;margin-top:10px;overflow-x:auto}
 .heat i{border-radius:3px;background:var(--surface-3)}.heat i.on{background:var(--accent)}.heat i.fut{background:transparent}
 .mbar{height:8px;border-radius:4px;background:var(--surface-3);overflow:hidden;margin-top:3px}.mbar b{display:block;height:100%;background:var(--accent)}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.pth{position:relative;border:2px solid transparent;border-radius:8px;overflow:hidden;cursor:pointer}.pth.on{border-color:var(--accent)}
+.pth img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.pth span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 4px}
+.pth button{position:absolute;top:3px;right:3px;padding:0 6px;font-size:11px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:6px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}.cmp figure{margin:0}.cmp img{width:100%;border-radius:10px}.cmp figcaption{font-size:11px;text-align:center;color:var(--muted)}
+.focus-bar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:25;gap:8px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line)}
+.focus-bar button{flex:1;padding:14px 8px;font-size:15px}.focus-bar .fi{flex:0 0 auto;font-family:var(--font-display);font-size:16px;min-width:48px;text-align:center}
+body.focus .top,body.focus #dayRail,body.focus #warmupCard,body.focus #remindBanner,body.focus .hero .actions-row,body.focus #gymRow,body.focus #ratingRow,body.focus #lastSession,body.focus #sub{display:none!important}
+body.focus .app{padding-bottom:110px}body.focus #list .ex:not(.focus-on){display:none}
+body.focus .set{grid-template-columns:30px 1fr 1fr 64px 52px}body.focus .set input{font-size:22px;padding:10px 2px}body.focus .ok{width:48px;height:48px;font-size:20px}
+body.focus .exercise-name{font-size:20px}body.focus .timer-widget{bottom:88px}
 .ex-hint{font-size:12px;margin:8px 0 0;line-height:1.5}
 .sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:12px 0}
 .sum-grid div{background:var(--surface-2);border-radius:10px;padding:10px}
@@ -346,6 +358,7 @@ button.full{width:100%;margin-top:8px}
 <main>
 
 <section id="treino" class="view active">
+  <div class="card" id="remindBanner" style="display:none"></div>
   <div class="day-rail" id="dayRail"></div>
   <div class="hero">
     <span class="rest-badge" id="restBadge" style="display:none">Dia de descanso</span>
@@ -366,6 +379,7 @@ button.full{width:100%;margin-top:8px}
       <button type="button" onclick="openDayEditor()">Editar dias</button>
       <button type="button" onclick="$('tplModal').classList.add('open')">📋 Modelos</button>
       <button type="button" onclick="openPlates()">🧮 Anilhas</button>
+      <button type="button" onclick="toggleFocus(true)">🎯 Modo foco</button>
       <button type="button" class="green" id="finishBtn" onclick="finishSession()">✓ Finalizar treino</button>
     </div>
   </div>
@@ -386,6 +400,7 @@ button.full{width:100%;margin-top:8px}
     </select>
   </div>
   <div class="card" id="dashCard"></div>
+  <div class="card" id="photoCard"></div>
   <div class="card" id="prCard"></div>
   <div class="card">
     <h2>Evolução por exercício</h2>
@@ -440,6 +455,27 @@ button.full{width:100%;margin-top:8px}
     <h2>Instalar como app</h2>
     <p class="muted">No Android/Chrome, toque em "Instalar app" abaixo. No iPhone/iPad, use Compartilhar → "Adicionar à Tela de Início" pelo Safari. Depois de instalado, o tracker abre em tela cheia e funciona offline.</p>
     <div class="actions"><button type="button" id="installBtn" class="primary" style="display:none" onclick="installApp()">⬇ Instalar app</button></div>
+  </div>
+  <div class="card">
+    <h2>Perfis</h2>
+    <p class="muted">Cada perfil tem treinos, histórico, notas e fotos separados neste aparelho (ex.: você e outra pessoa).</p>
+    <select id="profileSel" class="field-input" onchange="switchProfile(this.value)"></select>
+    <div class="actions"><button type="button" onclick="newProfile()">+ Novo perfil</button><button type="button" onclick="renameProfile()">Renomear</button><button type="button" class="danger" onclick="deleteProfile()">Apagar perfil</button></div>
+  </div>
+  <div class="card">
+    <h2>Sincronizar entre aparelhos</h2>
+    <p class="muted">Guarda uma cópia dos treinos num Gist <b>privado</b> da sua conta do GitHub e junta os dados dos seus aparelhos. Crie um token em <a href="https://github.com/settings/tokens/new?scopes=gist&description=Low%20Volume%20Tracker" target="_blank" rel="noopener">github.com/settings/tokens</a> marcando só a permissão <b>gist</b>, e cole o mesmo token em cada aparelho. Fotos não são sincronizadas.</p>
+    <label>Token do GitHub<input id="gistToken" class="field-input" type="password" placeholder="ghp_..." autocomplete="off"></label>
+    <div class="actions"><button type="button" class="primary" onclick="saveSyncToken();syncNow()">🔄 Sincronizar agora</button><button type="button" class="danger" onclick="forgetSync()">Desconectar</button></div>
+    <p id="syncStatus" class="muted" style="font-size:12px;margin-top:8px"></p>
+  </div>
+  <div class="card">
+    <h2>Lembretes de treino</h2>
+    <p class="muted">Avisa se você ainda não treinou no dia. Funciona com o app aberto ou em segundo plano, e no Android (Chrome) com o app instalado também pode avisar com o app fechado, mas o sistema não garante o horário exato. No iPhone o aviso aparece só com o app aberto.</p>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="remindOn" style="width:auto"> Ativar lembrete</label>
+    <label class="block">Horário<input id="remindTime" type="time" class="field-input" value="18:00"></label>
+    <div class="row wrap" style="gap:10px;margin-top:10px"><label style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" class="remind-day" value="0" style="width:auto">D</label><label style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" class="remind-day" value="1" style="width:auto">S</label><label style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" class="remind-day" value="2" style="width:auto">T</label><label style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" class="remind-day" value="3" style="width:auto">Q</label><label style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" class="remind-day" value="4" style="width:auto">Q</label><label style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" class="remind-day" value="5" style="width:auto">S</label><label style="margin:0;display:flex;gap:4px;align-items:center"><input type="checkbox" class="remind-day" value="6" style="width:auto">S</label>" style="width:auto">${l}</label>`).join("")}</div>
+    <div class="actions"><button type="button" class="primary" onclick="saveReminders()">💾 Salvar lembretes</button></div>
   </div>
   <div class="card">
     <h2>Backup dos dados</h2>
@@ -592,6 +628,8 @@ button.full{width:100%;margin-top:8px}
   <label class="block">Anilhas disponíveis (kg, separadas por vírgula)<input id="plList" class="field-input" value="25,20,15,10,5,2.5,1.25" oninput="calcPlates()"></label>
   <div class="info-item" id="plResult" style="margin-top:12px">Digite a carga total.</div>
   <div class="actions"><button type="button" onclick="closeM('platesModal')">Fechar</button></div></div></div>
+<div class="focus-bar" id="focusBar"><button type="button" onclick="focusMove(-1)">← Anterior</button><span class="fi" id="focusInfo"></span><button type="button" id="focusNext" class="primary" onclick="focusNext()">Próximo →</button><button type="button" class="ghost" style="flex:0 0 auto" onclick="toggleFocus(false)" aria-label="Sair do modo foco">✕</button></div>
+<input type="file" id="photoFile" accept="image/*" style="display:none" onchange="addPhoto(this.files[0])">
 <div class="toast" id="toast"></div>
 
 <div class="timer-widget">
@@ -624,6 +662,16 @@ button.full{width:100%;margin-top:8px}
 </div>
 
 <script>
+const GLOBAL_KEYS=["lvt_profile","lvt_profiles"];
+const PROFILE=localStorage.getItem("lvt_profile")||"";
+const pk=k=>(PROFILE&&!GLOBAL_KEYS.includes(k))?PROFILE+"::"+k:k;
+const LS={
+  getItem:k=>localStorage.getItem(pk(k)),
+  setItem:(k,v)=>localStorage.setItem(pk(k),v),
+  removeItem:k=>localStorage.removeItem(pk(k)),
+  clear:()=>Object.keys(localStorage).filter(k=>!GLOBAL_KEYS.includes(k)&&(PROFILE?k.startsWith(PROFILE+"::"):!k.includes("::"))).forEach(k=>localStorage.removeItem(k))
+};
+
 const LIB=[
 ["Supino reto com barra","Peito • Tríceps • Deltoide anterior","5–8","Deite com os olhos aproximadamente abaixo da barra, firme as escápulas no banco e mantenha os pés estáveis. Retire a barra com controle, desça em direção à parte média/baixa do peito mantendo os antebraços próximos da vertical e pressione para cima sem perder a posição dos ombros.","Supino com halteres","Chest press"],
 ["Supino reto com halteres","Peito • Tríceps • Deltoide anterior","6–10","Comece com os halteres sobre o peito, estabilize as escápulas e mantenha os pés firmes. Desça os pesos de forma controlada até uma amplitude confortável, mantendo os cotovelos em uma posição natural, e suba aproximando os halteres sem bater um no outro.","Supino com barra","Máquina chest press"],
@@ -800,11 +848,11 @@ function genId(){return "d"+Date.now().toString(36)+Math.random().toString(36).s
 function emptyState(icon,title,text){return `<div class="card empty-state"><div class="empty-icon">${icon}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p></div>`;}
 
 function loadPlan(){
-  let raw=localStorage.getItem("lvt_plan_v2");
+  let raw=LS.getItem("lvt_plan_v2");
   if(raw){
     try{let p=JSON.parse(raw);if(Array.isArray(p)&&p.length)return p;}catch(e){}
   }
-  let oldRaw=localStorage.getItem("lvt_plan");
+  let oldRaw=LS.getItem("lvt_plan");
   if(oldRaw){
     try{
       let old=JSON.parse(oldRaw);
@@ -818,19 +866,19 @@ function loadPlan(){
 }
 
 let plan=loadPlan();
-let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]");
-let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5-5",gyms:[]},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
-let currentGym=localStorage.getItem("lvt_current_gym")||"";
+let logs=JSON.parse(LS.getItem("lvt_logs")||"[]");
+let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5-5",gyms:[]},JSON.parse(LS.getItem("lvt_settings")||"{}"));
+let currentGym=LS.getItem("lvt_current_gym")||"";
 let currentRating=0;
 if(settings.aiApiKey&&!settings.aiKeyAnthropic){settings.aiKeyAnthropic=settings.aiApiKey;settings.aiProvider="anthropic";}
 if(settings.aiModel&&settings.aiModelAnthropic==="claude-sonnet-5"){settings.aiModelAnthropic=settings.aiModel;}
 if(settings.aiModelAnthropic==="claude-sonnet-5")settings.aiModelAnthropic="claude-sonnet-5-5";
 if(settings.aiModelGemini==="gemini-2.0-flash"){settings.aiModelGemini="gemini-2.5-flash";}
-let currentDay=localStorage.getItem("lvt_current")||localStorage.getItem("lvt_day")||(plan[0]&&plan[0].id);
+let currentDay=LS.getItem("lvt_current")||LS.getItem("lvt_day")||(plan[0]&&plan[0].id);
 if(!plan.find(d=>d.id===currentDay))currentDay=plan[0]?plan[0].id:null;
 
-function saveAll(){localStorage.setItem("lvt_plan_v2",JSON.stringify(plan));localStorage.setItem("lvt_logs",JSON.stringify(logs));localStorage.setItem("lvt_settings",JSON.stringify(settings));}
-function savePlan(){localStorage.setItem("lvt_plan_v2",JSON.stringify(plan));}
+function saveAll(){LS.setItem("lvt_plan_v2",JSON.stringify(plan));LS.setItem("lvt_logs",JSON.stringify(logs));LS.setItem("lvt_settings",JSON.stringify(settings));}
+function savePlan(){LS.setItem("lvt_plan_v2",JSON.stringify(plan));LS.setItem("lvt_plan_mod",String(Date.now()));}
 saveAll();
 
 function curDay(){return plan.find(d=>d.id===currentDay);}
@@ -858,7 +906,7 @@ function renderDayRail(){
       <span>${esc(d.label||"DIA")}</span>${d.rest?'<span class="day-tab-dot" aria-hidden="true"></span>':""}
     </button>`).join("");
 }
-function selectDay(id){currentDay=id;localStorage.setItem("lvt_current",id);currentRating=0;renderTreino();}
+function selectDay(id){currentDay=id;LS.setItem("lvt_current",id);currentRating=0;renderTreino();}
 
 function lastSessionText(d){
   const log=logs.find(l=>l.dayId===d.id||l.day===d.id);
@@ -881,21 +929,21 @@ function onGymSelectChange(){
       if(!settings.gyms)settings.gyms=[];
       if(!settings.gyms.includes(name))settings.gyms.push(name);
       currentGym=name;
-      localStorage.setItem("lvt_current_gym",currentGym);
+      LS.setItem("lvt_current_gym",currentGym);
       saveAll();
     }
     renderGymSelect();
     return;
   }
   currentGym=v==="__none__"?"":v;
-  localStorage.setItem("lvt_current_gym",currentGym);
+  LS.setItem("lvt_current_gym",currentGym);
 }
 function removeCurrentGym(){
   if(!currentGym){toast("Nenhuma academia selecionada.");return;}
   if(!confirm(`Remover "${currentGym}" da lista de academias? Os treinos já salvos mantêm o registro.`))return;
   settings.gyms=(settings.gyms||[]).filter(g=>g!==currentGym);
   currentGym="";
-  localStorage.setItem("lvt_current_gym","");
+  LS.setItem("lvt_current_gym","");
   saveAll();
   renderGymSelect();
 }
@@ -931,8 +979,9 @@ function renderTreino(){
     $("list").innerHTML=emptyState("＋","Nenhum exercício ainda","Use \"Editar exercícios\" ou \"+ Exercício\" para montar esta sessão.");
     return;
   }
-  const draft=JSON.parse(localStorage.getItem(draftKey())||"{}");
+  const draft=JSON.parse(LS.getItem(draftKey())||"{}");
   $("list").innerHTML=d.ex.map((e,i)=>exerciseRow(e,i,draft)).join("");
+  if(focusOn)applyFocus();
 }
 
 function exerciseRow(e,i,draft){
@@ -975,7 +1024,7 @@ function exerciseRow(e,i,draft){
 function startKey(){return "lvt_start_"+currentDay;}
 function syncDraft(){
   const d=curDay();if(!d||d.rest)return;
-  if(!localStorage.getItem(startKey()))localStorage.setItem(startKey(),String(Date.now()));
+  if(!LS.getItem(startKey()))LS.setItem(startKey(),String(Date.now()));
   const draft={};
   document.querySelectorAll("#list .ex").forEach((card,i)=>{
     draft[i]=[...card.querySelectorAll(".set")].map(r=>({
@@ -983,16 +1032,16 @@ function syncDraft(){
       rir:r.querySelector(".rr").value,done:r.querySelector(".ok").classList.contains("on")
     }));
   });
-  localStorage.setItem(draftKey(),JSON.stringify(draft));
+  LS.setItem(draftKey(),JSON.stringify(draft));
 }
 function toggleSet(i,s,btn){
   syncDraft();
-  const draft=JSON.parse(localStorage.getItem(draftKey())||"{}");
+  const draft=JSON.parse(LS.getItem(draftKey())||"{}");
   if(!draft[i])draft[i]=[];
   if(!draft[i][s])draft[i][s]={};
   const turningOn=!draft[i][s].done;
   draft[i][s].done=turningOn;
-  localStorage.setItem(draftKey(),JSON.stringify(draft));
+  LS.setItem(draftKey(),JSON.stringify(draft));
   btn.classList.toggle("on");
   if(turningOn){
     const row=btn.closest(".set");const name=curDay().ex[i][0];
@@ -1016,7 +1065,7 @@ function finishSession(){
   const d=curDay();
   if(!d||d.rest){toast("Hoje é dia de descanso.");return;}
   syncDraft();
-  const draft=JSON.parse(localStorage.getItem(draftKey())||"{}");
+  const draft=JSON.parse(LS.getItem(draftKey())||"{}");
   const rowsOut=[];
   d.ex.forEach((e,i)=>(draft[i]||[]).forEach((v,s)=>{
     if(v.done||v.kg||v.reps)rowsOut.push({exercise:e[0],set:s+1,kg:+v.kg||0,reps:+v.reps||0,rir:v.rir===""?+settings.rir:(+v.rir||0)});
@@ -1032,17 +1081,20 @@ function finishSession(){
     else if(ce>b.e*1.001)prs.push(`${e[0]}: 1RM estimado ${ce.toFixed(1)} ${settings.unit}`);
   });
   const prevLog=logs.find(p=>p.dayId===d.id);
-  const start=+localStorage.getItem(startKey())||0;
+  const start=+LS.getItem(startKey())||0;
   const dur=start?Math.max(1,Math.round((Date.now()-start)/60000)):0;
   const entry={date:new Date().toISOString(),dayId:d.id,name:d.name,rows:rowsOut,gym:currentGym||null,rating:currentRating||0,dur};
   logs.unshift(entry);
-  localStorage.removeItem(draftKey());
-  localStorage.removeItem(startKey());
+  LS.removeItem(draftKey());
+  LS.removeItem(startKey());
   currentRating=0;
   saveAll();
   renderTreino();
   renderHistory();
   showSummary(entry,prevLog,prs);
+  checkReminder();
+  if(settings.gistToken)syncNow(true);
+  if(focusOn)toggleFocus(false);
 }
 function showSummary(entry,prevLog,prs){
   const vol=sessionVolume(entry);
@@ -1060,6 +1112,7 @@ function showSummary(entry,prevLog,prs){
 }
 function deleteLog(date){
   if(!confirm("Excluir esta sessão do histórico?"))return;
+  (settings.deletedLogs=settings.deletedLogs||[]).push(date);
   logs=logs.filter(l=>l.date!==date);saveAll();renderHistory();toast("Sessão excluída.");
 }
 
@@ -1119,7 +1172,7 @@ function renderPRs(){
 }
 
 /* ---------- notas, descanso, modelos, anilhas ---------- */
-function getNotes(){try{return JSON.parse(localStorage.getItem("lvt_notes")||"{}");}catch(e){return {};}}
+function getNotes(){try{return JSON.parse(LS.getItem("lvt_notes")||"{}");}catch(e){return {};}}
 function restFor(range){const hi=repRange(range)[1];return hi&&hi<=8?180:hi&&hi<=12?120:90;}
 function startRest(secs){
   timerRemaining=secs;timerEndAt=null;clearInterval(timerInterval);
@@ -1152,7 +1205,7 @@ function applyTemplate(k){
   const days=TEMPLATES[k];
   const lbl=["SEG","TER","QUA","QUI","SEX","SÁB","DOM"];
   plan=days.map((d,i)=>({id:genId(),label:lbl[i]||("D"+(i+1)),name:d[0],sub:d[1],rest:false,ex:d[2].map(e=>[...e])}));
-  currentDay=plan[0].id;localStorage.setItem("lvt_current",currentDay);
+  currentDay=plan[0].id;LS.setItem("lvt_current",currentDay);
   savePlan();closeM("tplModal");renderTreino();toast("Modelo aplicado!");
 }
 function openPlates(){$("platesModal").classList.add("open");if(!$("plList").dataset.init){$("plList").value=settings.plates||$("plList").value;$("plList").dataset.init=1;}calcPlates();}
@@ -1228,7 +1281,216 @@ function renderBodyCharts(){
     return `<div class="info-item"><b>${new Date(m.t).toLocaleDateString("pt-BR")}</b><br>`+Object.keys(names).filter(k=>m[k]).map(k=>{const dl=prev&&prev[k]?m[k]-prev[k]:null;return `${names[k]}: ${m[k]}${dl?` <span class="${dl>0?"pos":"neg"}">(${dl>0?"+":""}${dl.toFixed(1)})</span>`:""}`;}).join(" · ")+`</div>`;
   }).join("");
 }
-function initExtras(){$("smartRest").checked=settings.smartRest!==false;renderTemplates();renderBodyCharts();}
+function initExtras(){
+  $("remindOn").checked=!!settings.remindOn;$("remindTime").value=settings.remindTime||"18:00";
+  document.querySelectorAll(".remind-day").forEach(c=>c.checked=(settings.remindDays||[1,2,3,4,5]).includes(+c.value));
+  $("gistToken").value=settings.gistToken||"";
+  setSyncStatus(settings.lastSync?"Última sincronização: "+new Date(settings.lastSync).toLocaleString("pt-BR"):"Ainda não sincronizado.");
+  renderProfiles();
+  if(PROFILE){const pf=getProfiles().find(x=>x.id===PROFILE);const bs=document.querySelector(".brand-sub");if(bs&&pf)bs.textContent="Perfil: "+pf.name;}$("smartRest").checked=settings.smartRest!==false;renderTemplates();renderBodyCharts();}
+
+
+/* ---------- modo foco ---------- */
+let focusOn=false,focusIdx=0;
+function toggleFocus(on){
+  focusOn=on;document.body.classList.toggle("focus",on);
+  $("focusBar").style.display=on?"flex":"none";
+  if(on){
+    const d=curDay();if(!d||d.rest||!d.ex.length){toast("Nada para treinar neste dia.");focusOn=false;document.body.classList.remove("focus");$("focusBar").style.display="none";return;}
+    const draft=JSON.parse(LS.getItem(draftKey())||"{}");
+    focusIdx=Math.max(0,d.ex.findIndex((e,i)=>!(draft[i]||[]).length||(draft[i]||[]).some(v=>!v.done)));
+    toggleWakeLock(true);applyFocus();
+  }else if(!$("wakeLockCheck").checked)toggleWakeLock(false);
+  window.scrollTo(0,0);
+}
+function applyFocus(){
+  const cards=[...document.querySelectorAll("#list .ex")];
+  if(focusIdx>=cards.length)focusIdx=Math.max(0,cards.length-1);
+  cards.forEach((c,i)=>c.classList.toggle("focus-on",i===focusIdx));
+  $("focusInfo").textContent=`${focusIdx+1}/${cards.length}`;
+  $("focusNext").textContent=focusIdx>=cards.length-1?"✓ Finalizar":"Próximo →";
+}
+function focusMove(n){syncDraft();const t=document.querySelectorAll("#list .ex").length;focusIdx=Math.max(0,Math.min(t-1,focusIdx+n));applyFocus();window.scrollTo(0,0);}
+function focusNext(){
+  const t=document.querySelectorAll("#list .ex").length;
+  if(focusIdx>=t-1){finishSession();}else focusMove(1);
+}
+
+/* ---------- perfis ---------- */
+function getProfiles(){try{return JSON.parse(localStorage.getItem("lvt_profiles")||"[]");}catch(e){return [];}}
+function renderProfiles(){
+  const ps=[{id:"",name:"Principal"},...getProfiles()];
+  $("profileSel").innerHTML=ps.map(x=>`<option value="${esc(x.id)}" ${x.id===PROFILE?"selected":""}>${esc(x.name)}</option>`).join("");
+}
+function switchProfile(id){localStorage.setItem("lvt_profile",id);location.reload();}
+function newProfile(){
+  const n=(prompt("Nome do novo perfil:")||"").trim();if(!n)return;
+  const id="p"+Date.now().toString(36);
+  localStorage.setItem("lvt_profiles",JSON.stringify([...getProfiles(),{id,name:n}]));switchProfile(id);
+}
+function renameProfile(){
+  if(!PROFILE){toast("O perfil Principal não pode ser renomeado.");return;}
+  const ps=getProfiles(),pf=ps.find(x=>x.id===PROFILE);
+  const n=(prompt("Novo nome:",pf?pf.name:"")||"").trim();if(!n||!pf)return;
+  pf.name=n;localStorage.setItem("lvt_profiles",JSON.stringify(ps));location.reload();
+}
+function deleteProfile(){
+  if(!PROFILE){toast("O perfil Principal não pode ser apagado. Use \"Apagar todos os dados\".");return;}
+  if(!confirm("Apagar este perfil e todos os dados dele (inclusive fotos)?"))return;
+  LS.clear();try{indexedDB.deleteDatabase("lvt_photos_"+PROFILE);}catch(e){}
+  localStorage.setItem("lvt_profiles",JSON.stringify(getProfiles().filter(x=>x.id!==PROFILE)));switchProfile("");
+}
+
+/* ---------- fotos de progresso (IndexedDB) ---------- */
+let photoSel=[],photoPose="Frente",photoFilter="";
+function photoDb(){return new Promise((res,rej)=>{const r=indexedDB.open("lvt_photos"+(PROFILE?"_"+PROFILE:""),1);r.onupgradeneeded=()=>r.result.createObjectStore("p",{keyPath:"id"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function photoTx(mode,fn){const db=await photoDb();return new Promise((res,rej)=>{const q=fn(db.transaction("p",mode).objectStore("p"));q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
+async function addPhoto(file){
+  if(!file)return;
+  try{
+    const r=await resizeImageFile(file,1000,0.8);
+    await photoTx("readwrite",st=>st.put({id:"f"+Date.now().toString(36),t:Date.now(),pose:photoPose,kg:settings.weightKg||null,data:"data:image/jpeg;base64,"+r.data}));
+    toast("Foto salva.");
+  }catch(e){toast("Não consegui salvar a foto.");}
+  $("photoFile").value="";renderPhotos();
+}
+async function renderPhotos(){
+  const card=$("photoCard");
+  let all=[];
+  try{all=(await photoTx("readonly",st=>st.getAll())).sort((a,b)=>b.t-a.t);}
+  catch(e){card.innerHTML='<h2>Fotos de progresso</h2><p class="muted">Este navegador não permitiu guardar fotos.</p>';return;}
+  const poses=["Frente","Lado","Costas"];
+  const list=photoFilter?all.filter(x=>x.pose===photoFilter):all;
+  photoSel=photoSel.filter(id=>all.some(x=>x.id===id));
+  const sel=photoSel.map(id=>all.find(x=>x.id===id)).sort((a,b)=>a.t-b.t);
+  const fd=t=>new Date(t).toLocaleDateString("pt-BR");
+  let cmp="";
+  if(sel.length===2){
+    const dias=Math.round((sel[1].t-sel[0].t)/864e5);
+    const dk=sel[0].kg&&sel[1].kg?` · ${sel[1].kg-sel[0].kg>0?"+":""}${(sel[1].kg-sel[0].kg).toFixed(1)} kg`:"";
+    cmp=`<div class="cmp">${sel.map(x=>`<figure><img src="${x.data}" alt=""><figcaption>${fd(x.t)} · ${esc(x.pose)}${x.kg?` · ${x.kg} kg`:""}</figcaption></figure>`).join("")}</div><p class="muted tiny" style="text-align:center">${dias} dia(s) entre as fotos${dk}</p>`;
+  }
+  card.innerHTML=`<h2>Fotos de progresso</h2>
+    <p class="muted">Ficam só neste aparelho e não entram no backup nem na sincronização. Toque em duas fotos para comparar lado a lado.</p>
+    <div class="row wrap" style="gap:6px">
+      <select class="field-input" style="width:auto" onchange="photoPose=this.value">${poses.map(x=>`<option ${x===photoPose?"selected":""}>${x}</option>`).join("")}</select>
+      <button type="button" class="primary" onclick="$('photoFile').click()">📷 Adicionar foto</button>
+      <select class="field-input" style="width:auto" onchange="photoFilter=this.value;renderPhotos()"><option value="">Todas as poses</option>${poses.map(x=>`<option ${x===photoFilter?"selected":""}>${x}</option>`).join("")}</select>
+      ${list.length>1?`<button type="button" data-action="pfirstlast">Primeira × última</button>`:""}
+    </div>${cmp}
+    ${list.length?`<div class="pgrid">${list.map(x=>`<div class="pth ${photoSel.includes(x.id)?"on":""}" data-action="psel" data-id="${x.id}"><img src="${x.data}" loading="lazy" alt=""><span>${fd(x.t)} · ${esc(x.pose)}</span><button type="button" data-action="pdel" data-id="${x.id}" aria-label="Excluir foto">✕</button></div>`).join("")}</div>`:`<p class="muted" style="margin-top:10px">Nenhuma foto ainda.</p>`}`;
+}
+$("photoCard").addEventListener("click",async e=>{
+  const t=e.target.closest("[data-action]");if(!t)return;
+  const a=t.dataset.action,id=t.dataset.id;
+  if(a==="pdel"){e.stopPropagation();if(confirm("Excluir esta foto?")){await photoTx("readwrite",st=>st.delete(id));photoSel=photoSel.filter(x=>x!==id);renderPhotos();}}
+  else if(a==="psel"){photoSel=photoSel.includes(id)?photoSel.filter(x=>x!==id):[...photoSel,id].slice(-2);renderPhotos();}
+  else if(a==="pfirstlast"){
+    const all=(await photoTx("readonly",st=>st.getAll())).filter(x=>!photoFilter||x.pose===photoFilter).sort((x,y)=>x.t-y.t);
+    photoSel=[all[0].id,all[all.length-1].id];renderPhotos();
+  }
+});
+
+/* ---------- sincronização via GitHub Gist ---------- */
+const GIST_FILE=(()=>{if(!PROFILE)return "lvt-sync.json";const pf=(JSON.parse(localStorage.getItem("lvt_profiles")||"[]")).find(x=>x.id===PROFILE);return "lvt-sync-"+((pf?pf.name:PROFILE).toLowerCase().replace(/[^a-z0-9]+/g,"-")||"perfil")+".json";})();
+let syncBusy=false;
+function setSyncStatus(t){const el=$("syncStatus");if(el)el.textContent=t;}
+function saveSyncToken(){
+  const t=$("gistToken").value.trim();
+  if(t!==(settings.gistToken||"")){settings.gistToken=t;settings.gistId="";saveAll();}
+}
+function forgetSync(){settings.gistToken="";settings.gistId="";settings.lastSync=0;saveAll();$("gistToken").value="";setSyncStatus("Desconectado. Os dados no GitHub não foram apagados.");}
+async function gh(path,opt){
+  const r=await fetch("https://api.github.com"+path,{...(opt||{}),headers:{"Authorization":"Bearer "+settings.gistToken,"Accept":"application/vnd.github+json","Content-Type":"application/json"}});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(r.status===401?"Token recusado pelo GitHub. Confira se tem a permissão gist.":(d.message||"Erro "+r.status));
+  return d;
+}
+async function findGist(){
+  if(settings.gistId)return settings.gistId;
+  const list=await gh("/gists?per_page=100");
+  const g=list.find(x=>x.files&&x.files[GIST_FILE]);
+  if(g){settings.gistId=g.id;saveAll();return g.id;}
+  return null;
+}
+function syncPayload(){
+  return {app:"lvt",modified:+LS.getItem("lvt_plan_mod")||0,pushedAt:Date.now(),plan,logs,notes:getNotes(),
+    shared:{gyms:settings.gyms||[],weightLog:settings.weightLog||[],measures:settings.measures||[],deletedLogs:settings.deletedLogs||[]}};
+}
+function mergeRemote(r){
+  const sh=r.shared||{};
+  const dead=new Set([...(settings.deletedLogs||[]),...(sh.deletedLogs||[])]);
+  const map=new Map();
+  [...logs,...(r.logs||[])].forEach(l=>{if(l&&l.date&&!dead.has(l.date))map.set(l.date,l);});
+  logs=[...map.values()].sort((a,b)=>b.date.localeCompare(a.date));
+  if((r.modified||0)>(+LS.getItem("lvt_plan_mod")||0)&&Array.isArray(r.plan)&&r.plan.length){plan=r.plan;LS.setItem("lvt_plan_mod",String(r.modified));}
+  LS.setItem("lvt_notes",JSON.stringify({...(r.notes||{}),...getNotes()}));
+  settings.deletedLogs=[...dead];
+  settings.gyms=[...new Set([...(settings.gyms||[]),...(sh.gyms||[])])];
+  const uniq=(a,b)=>{const m=new Map();[...a,...b].forEach(x=>m.set(x.t,x));return [...m.values()].sort((x,y)=>x.t-y.t);};
+  settings.weightLog=uniq(settings.weightLog||[],sh.weightLog||[]);
+  settings.measures=uniq(settings.measures||[],sh.measures||[]);
+  if(!plan.find(d=>d.id===currentDay))currentDay=plan[0]&&plan[0].id;
+  saveAll();
+}
+async function syncNow(silent){
+  if(!settings.gistToken){if(!silent)toast("Cole o token do GitHub primeiro.");return;}
+  if(syncBusy)return;syncBusy=true;setSyncStatus("Sincronizando...");
+  try{
+    const id=await findGist();
+    if(id){
+      const g=await gh("/gists/"+id);const f=g.files&&g.files[GIST_FILE];
+      if(f){const txt=f.truncated?await (await fetch(f.raw_url)).text():f.content;mergeRemote(JSON.parse(txt));}
+    }
+    const body=JSON.stringify({description:"Low Volume Tracker — sincronização",public:false,files:{[GIST_FILE]:{content:JSON.stringify(syncPayload())}}});
+    if(id)await gh("/gists/"+id,{method:"PATCH",body});
+    else{const g=await gh("/gists",{method:"POST",body});settings.gistId=g.id;}
+    settings.lastSync=Date.now();saveAll();
+    renderDayRail();renderTreino();renderHistory();
+    setSyncStatus("✅ Sincronizado em "+new Date().toLocaleString("pt-BR"));
+    if(!silent)toast("Sincronizado!");
+  }catch(e){setSyncStatus("❌ "+(e.message||"falha de conexão"));if(!silent)toast("Falha ao sincronizar.");}
+  syncBusy=false;
+}
+
+/* ---------- lembretes ---------- */
+function nextTrainingDay(){
+  const train=plan.filter(d=>!d.rest);if(!train.length)return null;
+  const i=logs[0]?train.findIndex(d=>d.id===logs[0].dayId):-1;
+  return train[(i+1)%train.length];
+}
+function trainedToday(){return logs.some(l=>dkey(new Date(l.date))===dkey(new Date()));}
+function remindCfg(){
+  return {on:!!settings.remindOn,time:settings.remindTime||"18:00",days:settings.remindDays||[1,2,3,4,5],
+    next:(nextTrainingDay()||{}).name||"seu treino",trained:trainedToday()?dkey(new Date()):"",notified:LS.getItem("lvt_reminded")||""};
+}
+async function pushRemindCfg(){try{const c=await caches.open("lvt-config");await c.put("cfg",new Response(JSON.stringify(remindCfg())));}catch(e){}}
+function remindDue(c){const n=new Date();const [h,m]=c.time.split(":").map(Number);return c.on&&c.days.includes(n.getDay())&&n.getHours()*60+n.getMinutes()>=h*60+m;}
+async function showRemind(c){
+  const title="Hora de treinar 💪",opts={body:"Próximo: "+c.next,icon:"icons/icon-192.png",tag:"lvt-remind"};
+  try{const reg=await navigator.serviceWorker.ready;await reg.showNotification(title,opts);}
+  catch(e){try{new Notification(title,opts);}catch(_){}}
+}
+function checkReminder(){
+  const c=remindCfg(),due=remindDue(c)&&!c.trained,b=$("remindBanner");
+  b.style.display=due?"block":"none";
+  if(due)b.innerHTML=`<b>⏰ Você ainda não treinou hoje.</b><p class="muted" style="margin:4px 0 0">Próximo treino: ${esc(c.next)}</p>`;
+  if(due&&c.notified!==dkey(new Date())&&"Notification" in window&&Notification.permission==="granted"){LS.setItem("lvt_reminded",dkey(new Date()));showRemind(c);}
+  pushRemindCfg();
+}
+async function saveReminders(){
+  settings.remindOn=$("remindOn").checked;settings.remindTime=$("remindTime").value||"18:00";
+  settings.remindDays=[...document.querySelectorAll(".remind-day:checked")].map(x=>+x.value);
+  saveAll();
+  if(settings.remindOn&&"Notification" in window&&Notification.permission!=="granted"){
+    const p=await Notification.requestPermission();
+    if(p!=="granted")toast("Sem permissão de notificação: só o aviso dentro do app vai aparecer.");
+  }
+  try{const reg=await navigator.serviceWorker.ready;if(reg.periodicSync&&settings.remindOn)await reg.periodicSync.register("lvt-remind",{minInterval:3600000});}catch(e){}
+  checkReminder();toast("Lembretes salvos.");
+}
+setInterval(checkReminder,60000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkReminder();});
 
 /* ---------- IA: gerar treino e atalhos ---------- */
 function quickAi(t){$("aiInput").value=t;sendAiMessage();}
@@ -1252,7 +1514,7 @@ async function aiGeneratePlan(){
     const total=clean.reduce((a,d)=>a+d.ex.length,0);
     if(!total)throw new Error("Nenhum exercício reconhecido. Tente de novo.");
     if(confirm(`A IA montou ${clean.length} dia(s) com ${total} exercícios:\n\n${clean.map(d=>"• "+d.name+" ("+d.ex.length+")").join("\n")}\n\nAplicar e substituir seus dias atuais?`)){
-      plan=clean;currentDay=plan[0].id;localStorage.setItem("lvt_current",currentDay);savePlan();renderTreino();showView("treino");toast("Treino da IA aplicado!");
+      plan=clean;currentDay=plan[0].id;LS.setItem("lvt_current",currentDay);savePlan();renderTreino();showView("treino");toast("Treino da IA aplicado!");
     }
   }catch(e){toast("Não consegui gerar: "+(e.message||"erro").slice(0,80));}
   btn.disabled=false;btn.textContent="✨ Gerar treino e aplicar";
@@ -1260,7 +1522,7 @@ async function aiGeneratePlan(){
 
 /* ---------- backup ---------- */
 function exportData(){
-  const st={...settings};delete st.aiKeyGemini;delete st.aiKeyAnthropic;delete st.aiApiKey;
+  const st={...settings};delete st.gistToken;delete st.gistId;delete st.aiKeyGemini;delete st.aiKeyAnthropic;delete st.aiApiKey;
   const data={app:"lvt",version:2,exportedAt:new Date().toISOString(),plan,logs,settings:st,currentGym,notes:getNotes()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const a=document.createElement("a");
@@ -1268,7 +1530,7 @@ function exportData(){
   a.download=`lvt-backup-${new Date().toISOString().slice(0,10)}.json`;
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  localStorage.setItem("lvt_last_backup",String(Date.now()));
+  LS.setItem("lvt_last_backup",String(Date.now()));
   renderBackupInfo();toast("Backup exportado.");
 }
 function importData(file){
@@ -1281,10 +1543,10 @@ function importData(file){
       if(!confirm(`Importar ${data.logs.length} sessão(ões) e ${data.plan.length} dia(s)? Isso substitui os dados atuais deste aparelho.`))return;
       plan=data.plan;logs=data.logs;
       settings=Object.assign({},settings,data.settings||{},{aiKeyGemini:settings.aiKeyGemini,aiKeyAnthropic:settings.aiKeyAnthropic});
-      if(data.notes)localStorage.setItem("lvt_notes",JSON.stringify(data.notes));
-      if(data.currentGym!=null)localStorage.setItem("lvt_current_gym",data.currentGym);
+      if(data.notes)LS.setItem("lvt_notes",JSON.stringify(data.notes));
+      if(data.currentGym!=null)LS.setItem("lvt_current_gym",data.currentGym);
       currentDay=plan[0]?plan[0].id:null;
-      if(currentDay)localStorage.setItem("lvt_current",currentDay);
+      if(currentDay)LS.setItem("lvt_current",currentDay);
       saveAll();toast("Backup importado!");setTimeout(()=>location.reload(),700);
     }catch(err){toast("Arquivo de backup inválido.");}
   };
@@ -1292,7 +1554,7 @@ function importData(file){
   $("importFile").value="";
 }
 function renderBackupInfo(){
-  const t=+localStorage.getItem("lvt_last_backup")||0;
+  const t=+LS.getItem("lvt_last_backup")||0;
   $("backupInfo").textContent=t?`Último backup: ${new Date(t).toLocaleDateString("pt-BR")}.`:"Você ainda não fez nenhum backup.";
 }
 
@@ -1428,7 +1690,7 @@ function saveDayEditor(){
   syncDayEditorInputs();
   if(!plan.find(d=>d.id===currentDay))currentDay=plan[0]?plan[0].id:null;
   savePlan();
-  if(currentDay)localStorage.setItem("lvt_current",currentDay);
+  if(currentDay)LS.setItem("lvt_current",currentDay);
   closeM("dayModal");
   renderDayRail();renderTreino();
   toast("Dias atualizados!");
@@ -1497,6 +1759,7 @@ function renderHistory(){
     </div>`;
   }).join(""):emptyState("📓","Nenhum treino salvo ainda","Finalize uma sessão em Treino para começar seu histórico.");
   renderDashboard();
+  renderPhotos();
   renderPRs();
   populateChartExerciseSelect();
   renderExerciseChart();
@@ -1596,7 +1859,7 @@ function saveSettings(){
 }
 function resetAll(){
   if(confirm("Isso vai apagar todos os treinos, histórico e preferências salvos neste navegador. Continuar?")){
-    localStorage.clear();location.reload();
+    LS.clear();location.reload();
   }
 }
 function setTheme(t){
@@ -1685,7 +1948,7 @@ function saveAiSettings(){
   saveAll();
   toast("Configuração da IA salva.");
 }
-let aiChat=JSON.parse(localStorage.getItem("lvt_ai_chat")||"[]");
+let aiChat=JSON.parse(LS.getItem("lvt_ai_chat")||"[]");
 let aiPendingImage=null;
 
 function escMultiline(s){return esc(s).replace(/\n/g,"<br>");}
@@ -1698,7 +1961,7 @@ function renderAiMessages(){
     </div>`).join(""):`<p class="muted" style="padding:10px 2px">Pergunte algo como "monta um treino de push focado em ombro" ou envie uma foto para receber feedback sobre seu físico.</p>`;
   box.scrollTop=box.scrollHeight;
 }
-function saveAiChat(){try{localStorage.setItem("lvt_ai_chat",JSON.stringify(aiChat.slice(-30).map(m=>m.image?{...m,image:null}:m)));}catch(e){}}
+function saveAiChat(){try{LS.setItem("lvt_ai_chat",JSON.stringify(aiChat.slice(-30).map(m=>m.image?{...m,image:null}:m)));}catch(e){}}
 function clearAiChat(){
   if(!confirm("Apagar toda a conversa com o assistente?"))return;
   aiChat=[];saveAiChat();renderAiMessages();
@@ -1965,7 +2228,7 @@ $("list").addEventListener("click",e=>{
   else if(action==="guide")guide(t.dataset.name);
 });
 $("list").addEventListener("input",syncDraft);
-$("list").addEventListener("change",e=>{const t=e.target.closest(".ex-note");if(!t)return;const n=getNotes();if(t.value.trim())n[t.dataset.name]=t.value.trim();else delete n[t.dataset.name];localStorage.setItem("lvt_notes",JSON.stringify(n));});
+$("list").addEventListener("change",e=>{const t=e.target.closest(".ex-note");if(!t)return;const n=getNotes();if(t.value.trim())n[t.dataset.name]=t.value.trim();else delete n[t.dataset.name];LS.setItem("lvt_notes",JSON.stringify(n));});
 $("hist").addEventListener("click",e=>{const t=e.target.closest('[data-action="del-log"]');if(!t)return;deleteLog(t.dataset.date);});
 $("ratingStars").addEventListener("click",e=>{
   const t=e.target.closest('[data-action="rate"]');if(!t)return;
@@ -2173,8 +2436,10 @@ if("serviceWorker" in navigator){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});
   });
 }
-setTimeout(()=>{const t=+localStorage.getItem("lvt_last_backup")||0;if(logs.length>=3&&Date.now()-t>30*864e5)toast("Faz tempo sem backup. Exporte em Config.");},2500);
+setTimeout(()=>{const t=+LS.getItem("lvt_last_backup")||0;if(logs.length>=3&&Date.now()-t>30*864e5)toast("Faz tempo sem backup. Exporte em Config.");},2500);
 initExtras();
+checkReminder();
+if(settings.gistToken&&Date.now()-(settings.lastSync||0)>10*60000)setTimeout(()=>syncNow(true),1500);
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{
   e.preventDefault();
