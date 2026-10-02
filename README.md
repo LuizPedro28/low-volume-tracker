@@ -6,6 +6,12 @@ offline depois da primeira visita.
 
 ## O que mudou nesta versão
 
+- **Painel semanal** (Histórico): meta de treinos, sequência de semanas, calendário heatmap e séries por músculo.
+- **Modelos prontos** (PPL, Upper/Lower, Full Body, ABC), **calculadora de anilhas**, **reordenar exercícios**, **superset**, **anotação por exercício** e **descanso automático por exercício**.
+- **Peso corporal com gráfico** e **medidas** (Config → Avaliação física).
+- **IA**: gerar treino e aplicar direto no plano, analisar a semana, diagnóstico de estagnação e troca de exercício.
+- **Backup** (exportar/importar), **recordes (PRs)**, **resumo pós-treino**, sugestão de progressão e correções da IA.
+
 - **Academia**: escolha onde está treinando direto na tela de Treino (lista
   que você mesmo monta). Em Histórico, filtre por academia para comparar sua
   evolução separadamente em cada lugar que você treina.

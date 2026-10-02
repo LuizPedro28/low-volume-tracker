@@ -216,6 +216,9 @@ button.full{width:100%;margin-top:8px}
 }
 .ai-input-row textarea:focus{border-color:var(--accent)}
 .lib-desc{margin-top:8px;font-size:12px}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);grid-auto-columns:14px;gap:3px;margin-top:10px;overflow-x:auto}
+.heat i{border-radius:3px;background:var(--surface-3)}.heat i.on{background:var(--accent)}.heat i.fut{background:transparent}
+.mbar{height:8px;border-radius:4px;background:var(--surface-3);overflow:hidden;margin-top:3px}.mbar b{display:block;height:100%;background:var(--accent)}
 .ex-hint{font-size:12px;margin:8px 0 0;line-height:1.5}
 .sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:12px 0}
 .sum-grid div{background:var(--surface-2);border-radius:10px;padding:10px}
@@ -361,6 +364,8 @@ button.full{width:100%;margin-top:8px}
       <button type="button" id="editExBtn" onclick="openExerciseEditor()">Editar exercícios</button>
       <button type="button" id="addExBtn" onclick="quickAddExercise()">+ Exercício</button>
       <button type="button" onclick="openDayEditor()">Editar dias</button>
+      <button type="button" onclick="$('tplModal').classList.add('open')">📋 Modelos</button>
+      <button type="button" onclick="openPlates()">🧮 Anilhas</button>
       <button type="button" class="green" id="finishBtn" onclick="finishSession()">✓ Finalizar treino</button>
     </div>
   </div>
@@ -380,6 +385,7 @@ button.full{width:100%;margin-top:8px}
       <option value="">Todas as academias</option>
     </select>
   </div>
+  <div class="card" id="dashCard"></div>
   <div class="card" id="prCard"></div>
   <div class="card">
     <h2>Evolução por exercício</h2>
@@ -402,6 +408,15 @@ button.full{width:100%;margin-top:8px}
     <h2>Configure sua chave de API</h2>
     <p class="muted">Para usar o assistente, adicione sua própria chave da API da Anthropic em Configurações → Assistente de IA. Ela fica salva só neste navegador.</p>
     <div class="actions"><button type="button" class="primary" onclick="showView('config')">Ir para Configurações</button></div>
+  </div>
+  <div class="card">
+    <div class="row wrap" style="gap:6px">
+      <button type="button" class="primary" id="aiGenBtn" onclick="aiGeneratePlan()">✨ Gerar treino e aplicar</button>
+      <button type="button" onclick="quickAi('Analise minha última semana de treino: pontos fortes, músculos negligenciados e o que ajustar na próxima.')">📊 Analisar minha semana</button>
+      <button type="button" onclick="quickAi('Por que posso ter estagnado? Olhe meu histórico recente e sugira ajustes de carga, reps ou exercícios.')">📉 Por que estagnei?</button>
+      <button type="button" onclick="quickAi('Estou com dor/lesão e preciso substituir um exercício. Pergunte qual e sugira trocas da minha biblioteca.')">🩹 Trocar exercício</button>
+    </div>
+    <p class="tiny muted" style="margin-top:8px">"Gerar treino" usa o texto digitado abaixo como objetivo (ex.: ABC de 4 dias para hipertrofia).</p>
   </div>
   <div class="card ai-chat-card">
     <div id="aiMessages" class="ai-messages"></div>
@@ -455,6 +470,7 @@ button.full{width:100%;margin-top:8px}
       <label>Unidade<select id="unit"><option value="kg">kg</option><option value="lb">lb</option></select></label>
     </div>
     <label class="block">RIR padrão<input id="rir" type="number" min="0" max="5"></label>
+    <label class="block" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="smartRest" style="width:auto" onchange="settings.smartRest=this.checked;saveAll()"> Descanso automático por exercício (3 min nos pesados, 2 min nos médios, 90 s nos leves)</label>
     <div class="actions">
       <button type="button" class="primary" onclick="saveSettings()">💾 Salvar preferências</button>
       <button type="button" class="danger" onclick="resetAll()">🗑 Apagar todos os dados</button>
@@ -469,6 +485,12 @@ button.full{width:100%;margin-top:8px}
     </div>
     <div class="actions"><button type="button" class="primary" onclick="saveBodySettings()">💾 Salvar</button></div>
     <div id="bmiResult" class="info-item" style="margin-top:12px;display:none"></div>
+    <div class="actions"><button type="button" onclick="logWeight()">⚖ Registrar peso de hoje</button></div>
+    <div id="weightChart"></div>
+    <div class="section-title">Medidas (cm)</div>
+    <div class="grid-2"><label>Braço<input id="mArm" type="number" step=".1"></label><label>Cintura<input id="mWaist" type="number" step=".1"></label><label>Coxa<input id="mThigh" type="number" step=".1"></label><label>Peito<input id="mChest" type="number" step=".1"></label></div>
+    <div class="actions"><button type="button" onclick="saveMeasures()">💾 Salvar medidas</button></div>
+    <div id="measuresList" class="info-list"></div>
   </div>
   <div class="card">
     <h2>Assistente de IA</h2>
@@ -564,6 +586,12 @@ button.full{width:100%;margin-top:8px}
 </div>
 
 <div class="modal" id="summaryModal"><div class="modalbox"><h2>Treino concluído 💪</h2><div id="summaryBody"></div><div class="actions"><button type="button" class="primary" onclick="closeM('summaryModal')">Fechar</button></div></div></div>
+<div class="modal" id="tplModal"><div class="modalbox"><h2>Modelos prontos</h2><p class="muted">Substitui seus dias atuais pelo modelo escolhido. Dá para editar depois.</p><div class="info-list" id="tplList"></div><div class="actions"><button type="button" onclick="closeM('tplModal')">Fechar</button></div></div></div>
+<div class="modal" id="platesModal"><div class="modalbox"><h2>Calculadora de anilhas</h2>
+  <div class="grid-2"><label>Carga total (kg)<input id="plTarget" class="field-input" type="number" step=".5" inputmode="decimal" oninput="calcPlates()"></label><label>Peso da barra (kg)<input id="plBar" class="field-input" type="number" step=".5" value="20" oninput="calcPlates()"></label></div>
+  <label class="block">Anilhas disponíveis (kg, separadas por vírgula)<input id="plList" class="field-input" value="25,20,15,10,5,2.5,1.25" oninput="calcPlates()"></label>
+  <div class="info-item" id="plResult" style="margin-top:12px">Digite a carga total.</div>
+  <div class="actions"><button type="button" onclick="closeM('platesModal')">Fechar</button></div></div></div>
 <div class="toast" id="toast"></div>
 
 <div class="timer-widget">
@@ -818,7 +846,7 @@ function showView(id,btn){
   if(btn)btn.classList.add("active");else document.querySelector(`.nav-tabs button[data-view="${id}"]`)?.classList.add("active");
   if(id==="historico")renderHistory();
   if(id==="exercicios")renderLibrary();
-  if(id==="config"){markThemeActive();renderBackupInfo();}
+  if(id==="config"){markThemeActive();renderBackupInfo();initExtras();}
   if(id==="ia"){renderAiMessages();const hasKey=settings.aiProvider==="gemini"?!!settings.aiKeyGemini:!!settings.aiKeyAnthropic;$("aiKeyWarning").style.display=hasKey?"none":"block";}
 }
 function closeM(id){$(id).classList.remove("open");}
@@ -928,11 +956,12 @@ function exerciseRow(e,i,draft){
     <div class="exercise-top">
       <div>
         <div class="exercise-name">${esc(e[0])}</div>
-        <span class="badge">${esc(info[1])} • ${esc(e[1])}</span>
+        <span class="badge">${esc(info[1])} • ${esc(e[1])}</span>${e[3]?'<span class="badge" style="margin-left:6px">⛓ superset com o próximo</span>':""}
       </div>
       <button type="button" class="ghost guide-btn" data-action="guide" data-name="${esc(e[0])}">Ver execução</button>
     </div>
     ${hint?`<p class="ex-hint muted">Última vez: ${esc(hint.sets)} (${esc(hint.date)})${hint.tip?`<br>${esc(hint.tip)}`:""}</p>`:""}
+    <input class="field-input ex-note" data-name="${esc(e[0])}" value="${esc(getNotes()[e[0]]||"")}" placeholder="Anotação (ex.: banco na posição 3)" style="font-size:12px;padding:7px;margin-top:8px">
     <div class="set-labels"><span>Nº</span><span>Carga</span><span>Reps</span><span>RIR</span><span></span></div>
     ${rows}
     <div class="actions">
@@ -972,9 +1001,8 @@ function toggleSet(i,s,btn){
     if(kg&&reps&&(b.kg||b.e)&&(kg>b.kg||e1rm(kg,reps)>b.e*1.001))toast("🏆 Novo recorde pessoal!");
   }
   if(turningOn&&settings.autoTimer){
-    setPresetTimer(timerDuration);
-    startPauseTimer();
-    openTimerPanel();
+    const ex=curDay().ex[i];
+    if(!ex[3])startRest(settings.smartRest===false?timerDuration:restFor(ex[1]));
   }
 }
 function changeSeries(i,n){
@@ -1090,10 +1118,150 @@ function renderPRs(){
   $("prCard").innerHTML=`<h2>🏆 Meus recordes</h2>`+(names.length?`<p class="muted">Maior carga e 1RM estimado (fórmula de Epley).</p><div class="log-rows">${names.map(n=>`<div class="log-row"><span>${esc(n)}</span><span>${map[n].kg} ${esc(settings.unit)} <span class="muted">· 1RM ≈ ${map[n].e.toFixed(1)}</span></span></div>`).join("")}</div>`:`<p class="muted">Seus recordes aparecem aqui depois do primeiro treino salvo.</p>`);
 }
 
+/* ---------- notas, descanso, modelos, anilhas ---------- */
+function getNotes(){try{return JSON.parse(localStorage.getItem("lvt_notes")||"{}");}catch(e){return {};}}
+function restFor(range){const hi=repRange(range)[1];return hi&&hi<=8?180:hi&&hi<=12?120:90;}
+function startRest(secs){
+  timerRemaining=secs;timerEndAt=null;clearInterval(timerInterval);
+  $("timerStartBtn").textContent="▶ Iniciar";updateTimerDisplay();startPauseTimer();openTimerPanel();
+}
+const TEMPLATES={
+  "Push / Pull / Legs (3 dias)":[
+    ["Push","Peito • Ombros • Tríceps",[["Supino inclinado com halteres","6–10",3],["Desenvolvimento com halteres","6–10",2],["Elevação lateral com halteres","10–15",3],["Tríceps corda na polia","10–15",2]]],
+    ["Pull","Costas • Bíceps",[["Puxada alta neutra","6–10",3],["Remada baixa fechada","8–12",3],["Face pull","12–15",2],["Rosca alternada com halteres","8–12",2]]],
+    ["Legs","Quadríceps • Posterior • Panturrilha",[["Agachamento livre com barra","5–8",3],["Terra romeno com barra","6–10",2],["Cadeira extensora","10–15",2],["Panturrilha em pé","10–15",3]]]],
+  "Upper / Lower (4 dias)":[
+    ["Upper A","Peito • Costas • Ombros",[["Supino reto com barra","5–8",3],["Remada apoiada no banco","6–10",3],["Desenvolvimento máquina","8–12",2],["Rosca direta com barra","8–12",2],["Tríceps barra na polia","8–12",2]]],
+    ["Lower A","Pernas",[["Agachamento livre com barra","5–8",3],["Mesa flexora deitada","8–12",3],["Panturrilha em pé","10–15",3],["Prancha","30–60",2]]],
+    ["Upper B","Costas • Peito • Braços",[["Puxada alta pronada","6–10",3],["Supino inclinado com halteres","8–12",3],["Elevação lateral no cabo","10–15",3],["Rosca martelo","8–12",2],["Tríceps francês com halter","8–12",2]]],
+    ["Lower B","Pernas • Glúteos",[["Leg press 45°","8–12",3],["Stiff com halteres","8–12",3],["Hip thrust com barra","8–12",2],["Panturrilha sentada","12–15",3]]]],
+  "Full Body (3 dias)":[
+    ["Full A","Corpo inteiro",[["Agachamento livre com barra","5–8",3],["Supino reto com barra","5–8",3],["Remada unilateral com halter","8–12",3],["Elevação lateral com halteres","10–15",2]]],
+    ["Full B","Corpo inteiro",[["Terra romeno com barra","6–10",3],["Desenvolvimento com halteres","6–10",3],["Puxada alta neutra","8–12",3],["Rosca direta com barra","8–12",2]]],
+    ["Full C","Corpo inteiro",[["Leg press 45°","8–12",3],["Supino inclinado com halteres","8–12",3],["Remada baixa fechada","8–12",3],["Tríceps corda na polia","10–15",2]]]],
+  "ABC (3 dias)":[
+    ["A — Peito e tríceps","Peito • Tríceps",[["Supino reto com halteres","6–10",3],["Crossover médio","10–15",3],["Tríceps testa com barra","8–12",3]]],
+    ["B — Costas e bíceps","Costas • Bíceps",[["Barra fixa pronada","6–10",3],["Remada cavalinho","8–12",3],["Rosca Scott","8–12",3]]],
+    ["C — Pernas e ombros","Pernas • Ombros",[["Hack squat","6–10",3],["Mesa flexora deitada","8–12",3],["Elevação lateral máquina","10–15",3]]]]
+};
+function renderTemplates(){
+  $("tplList").innerHTML=Object.keys(TEMPLATES).map(k=>`<button type="button" class="picker-item" onclick="applyTemplate('${k}')"><span class="picker-item-name">${esc(k)}</span><span class="picker-item-meta muted">${TEMPLATES[k].map(d=>esc(d[0])).join(" • ")}</span></button>`).join("");
+}
+function applyTemplate(k){
+  if(!confirm(`Trocar seus dias atuais pelo modelo "${k}"? O histórico é mantido.`))return;
+  const days=TEMPLATES[k];
+  const lbl=["SEG","TER","QUA","QUI","SEX","SÁB","DOM"];
+  plan=days.map((d,i)=>({id:genId(),label:lbl[i]||("D"+(i+1)),name:d[0],sub:d[1],rest:false,ex:d[2].map(e=>[...e])}));
+  currentDay=plan[0].id;localStorage.setItem("lvt_current",currentDay);
+  savePlan();closeM("tplModal");renderTreino();toast("Modelo aplicado!");
+}
+function openPlates(){$("platesModal").classList.add("open");if(!$("plList").dataset.init){$("plList").value=settings.plates||$("plList").value;$("plList").dataset.init=1;}calcPlates();}
+function calcPlates(){
+  const t=+$("plTarget").value,bar=+$("plBar").value||0;
+  const plates=$("plList").value.split(",").map(x=>+x.trim().replace(",",".")).filter(x=>x>0).sort((a,b)=>b-a);
+  settings.plates=$("plList").value;saveAll();
+  if(!t){$("plResult").textContent="Digite a carga total.";return;}
+  let side=(t-bar)/2;
+  if(side<0){$("plResult").textContent="A carga é menor que o peso da barra.";return;}
+  const used=[];const target=side;
+  plates.forEach(p=>{while(side+1e-9>=p){used.push(p);side-=p;}});
+  const fmt=n=>String(n).replace(".",",");
+  $("plResult").innerHTML=`<b>Cada lado:</b> ${used.length?used.map(fmt).join(" + "):"só a barra"}`+(side>0.01?`<br><span class="muted">Sobram ${fmt(+side.toFixed(2))} kg por lado: use ${fmt(+(t-side*2).toFixed(2))} kg no total.</span>`:"");
+}
+
+/* ---------- painel semanal ---------- */
+const dkey=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+function mondayOf(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x;}
+function weekVolume(){
+  const start=mondayOf(new Date()),vol={};
+  logs.forEach(l=>{if(new Date(l.date)<start)return;l.rows.forEach(r=>{const g=find(r.exercise)[1].split(" • ")[0];vol[g]=(vol[g]||0)+1;});});
+  return vol;
+}
+function weeklyContext(){
+  const v=weekVolume();const txt=Object.entries(v).map(([g,n])=>`${g} ${n}`).join(", ");
+  const goal=settings.weeklyGoal||3;
+  const n=new Set(logs.filter(l=>new Date(l.date)>=mondayOf(new Date())).map(l=>dkey(new Date(l.date)))).size;
+  return `\nMeta semanal: ${goal} treinos (feitos nesta semana: ${n}). Séries por músculo nesta semana: ${txt||"nenhuma ainda"}.`;
+}
+function renderDashboard(){
+  const goal=settings.weeklyGoal||3;
+  const days=new Set(logs.map(l=>dkey(new Date(l.date))));
+  const perWeek={};
+  [...days].forEach(k=>{const [y,m,d]=k.split("-").map(Number);const mk=dkey(mondayOf(new Date(y,m-1,d)));perWeek[mk]=(perWeek[mk]||0)+1;});
+  const cur=mondayOf(new Date());let done=perWeek[dkey(cur)]||0,streak=0;
+  const w=new Date(cur);if(done<goal)w.setDate(w.getDate()-7);
+  while((perWeek[dkey(w)]||0)>=goal){streak++;w.setDate(w.getDate()-7);}
+  const start=new Date(cur);start.setDate(start.getDate()-77);
+  let cells="";const today=new Date();
+  for(let c=0;c<84;c++){const d=new Date(start);d.setDate(start.getDate()+c);cells+=`<i class="${d>today?"fut":days.has(dkey(d))?"on":""}" title="${d.toLocaleDateString("pt-BR")}"></i>`;}
+  const vol=weekVolume();
+  plan.forEach(d=>(d.ex||[]).forEach(e=>{const g=find(e[0])[1].split(" • ")[0];if(!(g in vol))vol[g]=0;}));
+  const bars=Object.entries(vol).sort((a,b)=>b[1]-a[1]).map(([g,n])=>`<div style="margin-top:8px"><div class="row between" style="font-size:12px"><span>${esc(g)}</span><span class="muted">${n} séries</span></div><div class="mbar"><b style="width:${Math.min(100,n/20*100)}%;${n>=10?"background:var(--success)":""}"></b></div></div>`).join("");
+  $("dashCard").innerHTML=`<h2>Esta semana</h2>
+    <div class="row between wrap"><div><b style="font-size:22px">${done}/${goal}</b> <span class="muted">treinos${streak?` · 🔥 ${streak} semana${streak>1?"s":""} seguida${streak>1?"s":""}`:""}</span></div>
+    <label style="margin:0">Meta <select id="weeklyGoal" class="field-input" style="width:auto;display:inline-block;padding:6px" onchange="settings.weeklyGoal=+this.value;saveAll();renderDashboard()">${[1,2,3,4,5,6,7].map(n=>`<option ${n===goal?"selected":""}>${n}</option>`).join("")}</select></label></div>
+    <div class="heat">${cells}</div><p class="tiny muted">Últimas 12 semanas (colunas = semanas, de segunda a domingo).</p>
+    <div class="section-title">Séries por músculo (verde = 10 ou mais)</div>${bars||'<p class="muted">Sem treinos nesta semana.</p>'}`;
+}
+
+/* ---------- peso e medidas ---------- */
+function logWeight(){
+  const kg=+$("weightKg").value;if(!kg){toast("Informe o peso.");return;}
+  const d=dkey(new Date());
+  settings.weightLog=(settings.weightLog||[]).filter(x=>x.k!==d);
+  settings.weightLog.push({k:d,t:Date.now(),kg});
+  settings.weightLog.sort((a,b)=>a.t-b.t);settings.weightKg=kg;
+  saveAll();computeAndShowBmi();renderBodyCharts();toast("Peso registrado.");
+}
+function saveMeasures(){
+  const m={t:Date.now(),arm:+$("mArm").value||0,waist:+$("mWaist").value||0,thigh:+$("mThigh").value||0,chest:+$("mChest").value||0};
+  if(!m.arm&&!m.waist&&!m.thigh&&!m.chest){toast("Preencha ao menos uma medida.");return;}
+  settings.measures=[...(settings.measures||[]),m];saveAll();renderBodyCharts();toast("Medidas salvas.");
+}
+function renderBodyCharts(){
+  const wl=settings.weightLog||[];
+  $("weightChart").innerHTML=wl.length>1?buildLineChartSVG(wl.map(x=>({value:x.kg,label:new Date(x.t).toLocaleDateString("pt-BR")+" — "+x.kg+" kg"})),320,150)+`<div class="chart-dates"><span>${new Date(wl[0].t).toLocaleDateString("pt-BR")}</span><span>${new Date(wl[wl.length-1].t).toLocaleDateString("pt-BR")}</span></div>`:'<p class="muted tiny">Registre o peso em pelo menos 2 dias para ver o gráfico.</p>';
+  const ms=(settings.measures||[]).slice(-3).reverse();
+  const names={arm:"Braço",waist:"Cintura",thigh:"Coxa",chest:"Peito"};
+  $("measuresList").innerHTML=ms.map((m,i)=>{
+    const prev=(settings.measures||[]).slice(-4).reverse()[i+1];
+    return `<div class="info-item"><b>${new Date(m.t).toLocaleDateString("pt-BR")}</b><br>`+Object.keys(names).filter(k=>m[k]).map(k=>{const dl=prev&&prev[k]?m[k]-prev[k]:null;return `${names[k]}: ${m[k]}${dl?` <span class="${dl>0?"pos":"neg"}">(${dl>0?"+":""}${dl.toFixed(1)})</span>`:""}`;}).join(" · ")+`</div>`;
+  }).join("");
+}
+function initExtras(){$("smartRest").checked=settings.smartRest!==false;renderTemplates();renderBodyCharts();}
+
+/* ---------- IA: gerar treino e atalhos ---------- */
+function quickAi(t){$("aiInput").value=t;sendAiMessage();}
+async function aiGeneratePlan(){
+  const provider=settings.aiProvider||"gemini";
+  const hasKey=provider==="gemini"?!!settings.aiKeyGemini:!!settings.aiKeyAnthropic;
+  if(!hasKey){toast("Adicione sua chave de API em Configurações.");showView("config");return;}
+  const goal=$("aiInput").value.trim()||prompt("Que treino você quer? Ex.: ABC de 4 dias focado em hipertrofia");
+  if(!goal)return;
+  const btn=$("aiGenBtn");btn.disabled=true;btn.textContent="Gerando...";
+  const sys=`Você monta planos de treino de musculação. Responda SOMENTE com JSON válido, sem markdown e sem texto extra, neste formato: {"days":[{"label":"SEG","name":"Segunda — Push","sub":"Peito • Ombros","rest":false,"ex":[["Nome exato","6–10",3]]}]}. Regras: use APENAS nomes exatos desta lista: ${LIB.map(x=>x[0]).join("; ")}. Faixa de reps no formato "6–10" (travessão). Séries de 1 a 5 por exercício. Entre 3 e 6 exercícios por dia. ${weeklyContext()}`;
+  const turns=[{role:"user",text:goal}];
+  try{
+    const r=provider==="gemini"?await callGemini(turns,sys):await callAnthropic(turns,sys);
+    if(!r.ok)throw new Error(r.text);
+    const raw=r.text.slice(r.text.indexOf("{"),r.text.lastIndexOf("}")+1);
+    const days=JSON.parse(raw).days;
+    if(!Array.isArray(days)||!days.length)throw new Error("A IA não devolveu dias válidos.");
+    const known=new Set(LIB.map(x=>x[0]));
+    const clean=days.map(d=>({id:genId(),label:String(d.label||"D").slice(0,4).toUpperCase(),name:d.name||"Treino",sub:d.sub||"",rest:!!d.rest,ex:d.rest?[]:(d.ex||[]).filter(e=>known.has(e[0])).map(e=>[e[0],String(e[1]||"8–12"),Math.max(1,Math.min(5,+e[2]||2))])}));
+    const total=clean.reduce((a,d)=>a+d.ex.length,0);
+    if(!total)throw new Error("Nenhum exercício reconhecido. Tente de novo.");
+    if(confirm(`A IA montou ${clean.length} dia(s) com ${total} exercícios:\n\n${clean.map(d=>"• "+d.name+" ("+d.ex.length+")").join("\n")}\n\nAplicar e substituir seus dias atuais?`)){
+      plan=clean;currentDay=plan[0].id;localStorage.setItem("lvt_current",currentDay);savePlan();renderTreino();showView("treino");toast("Treino da IA aplicado!");
+    }
+  }catch(e){toast("Não consegui gerar: "+(e.message||"erro").slice(0,80));}
+  btn.disabled=false;btn.textContent="✨ Gerar treino e aplicar";
+}
+
 /* ---------- backup ---------- */
 function exportData(){
   const st={...settings};delete st.aiKeyGemini;delete st.aiKeyAnthropic;delete st.aiApiKey;
-  const data={app:"lvt",version:1,exportedAt:new Date().toISOString(),plan,logs,settings:st,currentGym};
+  const data={app:"lvt",version:2,exportedAt:new Date().toISOString(),plan,logs,settings:st,currentGym,notes:getNotes()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
@@ -1113,6 +1281,7 @@ function importData(file){
       if(!confirm(`Importar ${data.logs.length} sessão(ões) e ${data.plan.length} dia(s)? Isso substitui os dados atuais deste aparelho.`))return;
       plan=data.plan;logs=data.logs;
       settings=Object.assign({},settings,data.settings||{},{aiKeyGemini:settings.aiKeyGemini,aiKeyAnthropic:settings.aiKeyAnthropic});
+      if(data.notes)localStorage.setItem("lvt_notes",JSON.stringify(data.notes));
       if(data.currentGym!=null)localStorage.setItem("lvt_current_gym",data.currentGym);
       currentDay=plan[0]?plan[0].id:null;
       if(currentDay)localStorage.setItem("lvt_current",currentDay);
@@ -1141,15 +1310,29 @@ function editItemRow(e,i){
       <input class="sc" type="number" min="1" max="8" value="${e[2]}" aria-label="Número de séries">
       <button type="button" class="danger" data-action="remove-ex" data-idx="${i}" aria-label="Remover exercício">🗑</button>
     </div>
+    <div class="row" style="margin-top:6px;gap:6px">
+      <button type="button" data-action="ex-up" data-idx="${i}" style="padding:4px 10px">↑</button>
+      <button type="button" data-action="ex-down" data-idx="${i}" style="padding:4px 10px">↓</button>
+      <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" class="ss" ${e[3]?"checked":""}> Superset com o próximo</label>
+    </div>
   </div>`;
 }
-function removeEdit(i){curDay().ex.splice(i,1);openExerciseEditor();}
-function saveExerciseEditor(){
+function syncEditor(){
   const d=curDay();
   document.querySelectorAll("#editList .edit-row").forEach((row,i)=>{
-    const sets=Math.max(1,Math.min(8,+row.querySelector(".sc").value||1));
-    if(d.ex[i])d.ex[i][2]=sets;
+    if(!d.ex[i])return;
+    d.ex[i][2]=Math.max(1,Math.min(8,+row.querySelector(".sc").value||1));
+    d.ex[i][3]=row.querySelector(".ss").checked;
   });
+}
+function moveEx(i,dir){
+  syncEditor();const a=curDay().ex,j=i+dir;
+  if(j<0||j>=a.length)return;
+  [a[i],a[j]]=[a[j],a[i]];openExerciseEditor();
+}
+function removeEdit(i){syncEditor();curDay().ex.splice(i,1);openExerciseEditor();}
+function saveExerciseEditor(){
+  syncEditor();
   savePlan();closeM("editModal");renderTreino();toast("Treino atualizado!");
 }
 
@@ -1313,6 +1496,7 @@ function renderHistory(){
       <div class="log-rows">${l.rows.map(r=>`<div class="log-row"><span>${esc(r.exercise)}</span><span>${r.kg||"—"} ${esc(settings.unit)} × ${r.reps||"—"} <span class="muted">RIR ${r.rir}</span></span></div>`).join("")}</div>
     </div>`;
   }).join(""):emptyState("📓","Nenhum treino salvo ainda","Finalize uma sessão em Treino para começar seu histórico.");
+  renderDashboard();
   renderPRs();
   populateChartExerciseSelect();
   renderExerciseChart();
@@ -1587,7 +1771,7 @@ async function callAnthropic(turns,systemPrompt){
     },
     body:JSON.stringify({
       model:settings.aiModelAnthropic||"claude-sonnet-5-5",
-      max_tokens:1024,
+      max_tokens:4096,
       system:systemPrompt,
       messages
     })
@@ -1696,7 +1880,7 @@ async function callGeminiOnce(model,contents,systemPrompt){
   const doFetch=()=>fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
     method:"POST",
     headers:{"content-type":"application/json","x-goog-api-key":settings.aiKeyGemini},
-    body:JSON.stringify({system_instruction:{parts:[{text:systemPrompt}]},contents,generationConfig:{maxOutputTokens:2048}})
+    body:JSON.stringify({system_instruction:{parts:[{text:systemPrompt}]},contents,generationConfig:{maxOutputTokens:4096}})
   });
   let resp=await doFetch();
   if(resp.status===503){await new Promise(r=>setTimeout(r,1500));resp=await doFetch();}
@@ -1754,7 +1938,7 @@ async function sendAiMessage(){
   renderAiMessages();
   $("aiSendBtn").disabled=true;
 
-  const systemPrompt=buildAiSystemPrompt();
+  const systemPrompt=buildAiSystemPrompt()+weeklyContext();
   const turns=cleanTurns(aiChat.slice(0,-1).slice(-12));
 
   try{
@@ -1781,6 +1965,7 @@ $("list").addEventListener("click",e=>{
   else if(action==="guide")guide(t.dataset.name);
 });
 $("list").addEventListener("input",syncDraft);
+$("list").addEventListener("change",e=>{const t=e.target.closest(".ex-note");if(!t)return;const n=getNotes();if(t.value.trim())n[t.dataset.name]=t.value.trim();else delete n[t.dataset.name];localStorage.setItem("lvt_notes",JSON.stringify(n));});
 $("hist").addEventListener("click",e=>{const t=e.target.closest('[data-action="del-log"]');if(!t)return;deleteLog(t.dataset.date);});
 $("ratingStars").addEventListener("click",e=>{
   const t=e.target.closest('[data-action="rate"]');if(!t)return;
@@ -1796,7 +1981,9 @@ $("editList").addEventListener("click",e=>{
   const t=e.target.closest("[data-action]");if(!t)return;
   const i=+t.dataset.idx;
   if(t.dataset.action==="remove-ex")removeEdit(i);
-  else if(t.dataset.action==="pick-open")openPicker(i);
+  else if(t.dataset.action==="pick-open"){syncEditor();openPicker(i);}
+  else if(t.dataset.action==="ex-up")moveEx(i,-1);
+  else if(t.dataset.action==="ex-down")moveEx(i,1);
 });
 $("pickerList").addEventListener("click",e=>{
   const t=e.target.closest('[data-action="pick"]');if(!t)return;
@@ -1987,6 +2174,7 @@ if("serviceWorker" in navigator){
   });
 }
 setTimeout(()=>{const t=+localStorage.getItem("lvt_last_backup")||0;if(logs.length>=3&&Date.now()-t>30*864e5)toast("Faz tempo sem backup. Exporte em Config.");},2500);
+initExtras();
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{
   e.preventDefault();
