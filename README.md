@@ -6,6 +6,24 @@ offline depois da primeira visita.
 
 ## O que mudou nesta versão
 
+- **Academia**: escolha onde está treinando direto na tela de Treino (lista
+  que você mesmo monta). Em Histórico, filtre por academia para comparar sua
+  evolução separadamente em cada lugar que você treina.
+- **% de evolução**: cada sessão no histórico mostra um selo comparando o
+  volume (carga × repetições) com a sessão anterior do mesmo dia de treino.
+  O gráfico por exercício também ganhou um indicador "desde o treino
+  anterior".
+- **Nota do treino**: dê de 1 a 5 estrelas antes de finalizar a sessão —
+  fica salva junto no histórico.
+- **Correção importante no assistente de IA (Gemini)**: o app parou de
+  "chutar" nomes de modelo fixos no código (o Google descontinuou vários
+  seguidos: `gemini-2.0-flash` e depois até `gemini-1.5-flash`). Agora ele
+  consulta a lista real de modelos disponíveis direto na API do Google,
+  tanto no botão de teste em Configurações quanto automaticamente durante a
+  conversa se o modelo parar de funcionar.
+- **Novo botão "Testar chave e buscar modelos"** em Configurações →
+  Assistente de IA, para confirmar se a chave do Gemini está certa e ver
+  exatamente quais modelos ela pode usar.
 - **Correção**: os campos de Provedor/Chave/Modelo do assistente de IA
   estavam sem estilo (apareciam com a aparência padrão do navegador) — agora
   seguem o visual do resto do app.
@@ -93,13 +111,32 @@ IA. Tem dois provedores para escolher:
 ### Google Gemini — opção gratuita (recomendada)
 
 - Crie uma chave em [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-  — é grátis, não pede cartão de crédito.
+  — é grátis, não pede cartão de crédito. Veja o passo a passo detalhado mais
+  abaixo se tiver dúvida de como pegar essa chave.
 - O nível gratuito do Google AI Studio tem um limite generoso pra uso
   pessoal (dezenas de mensagens por minuto, centenas por dia, dependendo do
   modelo escolhido), mais do que suficiente pra conversar sobre treino e
   mandar fotos ocasionalmente.
 - Entende texto e imagem (fotos do físico), então dá pra usar a função de
   avaliação normalmente.
+
+### Como pegar a chave do Gemini, passo a passo
+
+1. Acesse [aistudio.google.com/apikey](https://aistudio.google.com/apikey) e
+   faça login com uma conta Google **pessoal** (não de escola/faculdade/
+   trabalho — contas assim costumam bloquear a criação de chave).
+2. Clique em "Create API key" (ou "Criar chave de API").
+3. Escolha "Create API key in new project" se for a primeira vez.
+4. Copie a chave gerada — ela começa com `AIza...`. Copie exatamente, sem
+   espaços no início/fim.
+5. Cole essa chave no app, em Configurações → Assistente de IA → campo
+   "Chave da API do Gemini".
+6. Clique no botão **"Testar chave e buscar modelos"** logo abaixo do campo.
+   Isso pergunta direto para o Google quais modelos a sua chave pode
+   realmente usar agora e já seleciona um funcional automaticamente — é mais
+   confiável do que confiar numa lista fixa, porque o Google muda os nomes
+   dos modelos com frequência (veja a seção abaixo).
+7. Se o teste der certo, clique em "💾 Salvar" e pronto.
 
 ### Anthropic Claude — opção paga
 
@@ -122,22 +159,27 @@ IA. Tem dois provedores para escolher:
 - Fotos enviadas ao assistente são redimensionadas no próprio navegador antes
   de serem enviadas, para economizar dados e custo/cota.
 
-### Modelos de IA mudam com frequência — o app se auto-corrige (só para o Gemini)
+### Modelos do Google mudam de nome com muita frequência
 
-Provedores de IA descontinuam modelos com uma certa regularidade (já
-aconteceu durante o desenvolvimento deste próprio app: o `gemini-2.0-flash`
-foi desativado pelo Google). Por isso, para o Gemini, o app **tenta se
-recuperar sozinho**: se o modelo configurado não estiver mais disponível, ele
-tenta automaticamente uma lista de modelos alternativos recentes e, ao achar
-um que funcione, atualiza a configuração sozinho para não precisar repetir
-isso na próxima mensagem.
+Isso já aconteceu duas vezes só durante o desenvolvimento deste app: o
+`gemini-2.0-flash` foi desativado, e depois até o `gemini-1.5-flash`
+(que era só um "fallback" para casos assim) também parou de funcionar. Por
+isso o app não confia mais numa lista fixa de nomes de modelo — em vez
+disso:
 
-Se quiser forçar um modelo específico (por exemplo, um modelo novo que ainda
-não está na lista do app), escolha "Outro" no seletor de modelo do Gemini em
-Configurações e digite o nome exato — veja a lista atual em
-[ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models).
-Isso não existe para o Claude ainda, então se o modelo escolhido da Anthropic
-parar de funcionar, é preciso trocar manualmente no seletor.
+- O botão **"Testar chave e buscar modelos"** em Configurações consulta a
+  API `ListModels` do próprio Google, que devolve exatamente quais modelos a
+  sua chave pode usar agora, e escolhe um automaticamente pra você.
+- Durante uma conversa, se o modelo configurado parar de responder porque foi
+  descontinuado, o app faz essa mesma consulta sozinho, em segundo plano,
+  troca para um modelo que ainda funciona e memoriza a escolha — sem
+  precisar voltar em Configurações.
+- Se quiser forçar um modelo específico manualmente, escolha "Outro" no
+  seletor de modelo do Gemini e digite o nome exato.
+
+Isso ainda não existe para a Anthropic (o Claude muda de nome com bem menos
+frequência), então se o modelo escolhido da Anthropic parar de funcionar, é
+preciso trocar manualmente no seletor.
 
 ## Como rodar localmente
 

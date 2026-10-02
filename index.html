@@ -186,11 +186,17 @@ button.full{width:100%;margin-top:8px}
 .search-input:focus{border-color:var(--accent)}
 .library-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
 .chart-svg{width:100%;height:150px;display:block;margin-top:10px}
-.chart-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.chart-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-top:10px}
 .chart-stats div{background:var(--surface-2);border-radius:10px;padding:8px 10px}
 .chart-dates{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:2px}
 .pos{color:var(--success)}
 .neg{color:var(--danger)}
+.rating-stars{display:inline-flex;gap:1px}
+.star-btn{background:none;border:none;padding:2px;font-size:19px;line-height:1;color:var(--line);cursor:pointer}
+.star-btn.on{color:var(--accent)}
+.delta-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;background:var(--surface-3);font-size:10px}
+.delta-badge.pos{color:var(--success)}
+.delta-badge.neg{color:var(--danger)}
 
 /* assistente de IA */
 .ai-chat-card{display:flex;flex-direction:column}
@@ -339,6 +345,14 @@ button.full{width:100%;margin-top:8px}
     <h1 id="title"></h1>
     <p id="sub" class="muted"></p>
     <p id="lastSession" class="muted last-session" style="display:none"></p>
+    <div class="row" id="gymRow" style="margin-top:10px;gap:6px">
+      <select id="gymSelect" class="field-input" style="flex:1" onchange="onGymSelectChange()"></select>
+      <button type="button" class="icon-btn" onclick="removeCurrentGym()" aria-label="Remover academia da lista" title="Remover academia da lista">🗑</button>
+    </div>
+    <div class="row" id="ratingRow" style="margin-top:10px;gap:6px;align-items:center">
+      <span class="muted tiny">Nota do treino:</span>
+      <span id="ratingStars" class="rating-stars"></span>
+    </div>
     <div class="row wrap actions-row">
       <button type="button" id="editExBtn" onclick="openExerciseEditor()">Editar exercícios</button>
       <button type="button" id="addExBtn" onclick="quickAddExercise()">+ Exercício</button>
@@ -355,6 +369,13 @@ button.full{width:100%;margin-top:8px}
 
 <section id="historico" class="view">
   <div class="hero"><h1>Histórico</h1><p class="muted">Sessões salvas neste aparelho.</p></div>
+  <div class="card">
+    <h2>Filtrar por academia</h2>
+    <p class="muted">Útil se você treina em mais de um lugar e quer comparar a evolução separadamente.</p>
+    <select id="histGymFilter" class="field-input" onchange="renderHistory()">
+      <option value="">Todas as academias</option>
+    </select>
+  </div>
   <div class="card">
     <h2>Evolução por exercício</h2>
     <select id="chartExerciseSelect" class="search-input" onchange="renderExerciseChart()"></select>
@@ -447,18 +468,17 @@ button.full{width:100%;margin-top:8px}
     </select></label>
     <div id="aiGeminiFields">
       <label class="block">Chave da API do Gemini<input id="aiKeyGemini" class="field-input" type="password" placeholder="AIza..." autocomplete="off"></label>
+      <div class="actions" style="margin-top:8px">
+        <button type="button" id="testGeminiBtn" onclick="testGeminiKey()">🔎 Testar chave e buscar modelos</button>
+      </div>
+      <p id="aiTestResult" class="muted" style="font-size:12px;margin-top:8px"></p>
       <label class="block">Modelo<select id="aiModelGemini" class="field-input" onchange="onGeminiModelChange()">
-        <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite (recomendado)</option>
-        <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-        <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
-        <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
-        <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
-        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+        <option value="gemini-2.5-flash">Gemini 2.5 Flash (recomendado)</option>
+        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (mais rápido)</option>
         <option value="custom">Outro (digitar o nome do modelo)</option>
       </select></label>
-      <input id="aiModelGeminiCustom" class="field-input" style="display:none;margin-top:6px" placeholder="ex.: gemini-3.8-flash">
-      <p class="muted" style="font-size:11px;margin-top:6px">O app consulta os modelos disponíveis para sua chave e tenta automaticamente uma opção atual compatível com generateContent se o modelo salvo estiver descontinuado. Se quiser forçar um modelo específico, use "Outro" e veja o nome atual em <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener">ai.google.dev/gemini-api/docs/models</a>.</p>
+      <input id="aiModelGeminiCustom" class="field-input" style="display:none;margin-top:6px" placeholder="ex.: gemini-3.5-flash">
+      <p class="muted" style="font-size:11px;margin-top:6px">Os modelos do Google mudam de nome com frequência. Clique em "Testar chave e buscar modelos" para ver a lista real e atual disponível para a sua chave — é mais confiável do que confiar nesta lista fixa. O app também tenta se recuperar sozinho durante a conversa se o modelo escolhido parar de funcionar.</p>
     </div>
     <div id="aiAnthropicFields" style="display:none">
       <label class="block">Chave da API da Anthropic<input id="aiKeyAnthropic" class="field-input" type="password" placeholder="sk-ant-..." autocomplete="off"></label>
@@ -476,7 +496,9 @@ button.full{width:100%;margin-top:8px}
       <div class="info-item"><b>Exercícios</b><br><span class="muted">Use "Editar exercícios" para trocar os exercícios de um dia (com busca) ou ajustar o número de séries (até 8).</span></div>
       <div class="info-item"><b>Registro</b><br><span class="muted">Carga, reps e RIR ficam salvos automaticamente como rascunho enquanto você treina, usando localStorage.</span></div>
       <div class="info-item"><b>Finalização</b><br><span class="muted">Ao finalizar, as séries preenchidas ou marcadas entram no histórico e o rascunho é limpo para a próxima vez.</span></div>
-      <div class="info-item"><b>Evolução</b><br><span class="muted">Em Histórico, escolha um exercício para ver o gráfico da carga máxima ao longo das sessões.</span></div>
+      <div class="info-item"><b>Evolução</b><br><span class="muted">Em Histórico, escolha um exercício para ver o gráfico de carga e a % de evolução desde o treino anterior.</span></div>
+      <div class="info-item"><b>Academia</b><br><span class="muted">Escolha onde está treinando na tela de Treino. Em Histórico, filtre por academia para comparar a evolução separadamente.</span></div>
+      <div class="info-item"><b>Nota do treino</b><br><span class="muted">Dê de 1 a 5 estrelas antes de finalizar a sessão — fica salva junto no histórico.</span></div>
       <div class="info-item"><b>Biblioteca</b><br><span class="muted">150 exercícios com grupo muscular, faixa de repetições, execução detalhada e variações — com busca.</span></div>
       <div class="info-item"><b>Assistente de IA</b><br><span class="muted">Converse e envie fotos do físico para receber sugestões de treino, usando sua própria chave de API.</span></div>
       <div class="info-item"><b>Dados locais</b><br><span class="muted">Tudo fica salvo neste navegador via localStorage — não há conta nem servidor.</span></div>
@@ -750,12 +772,12 @@ function loadPlan(){
 
 let plan=loadPlan();
 let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]");
-let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-3.5-flash-lite",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5"},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
+let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5",gyms:[]},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
+let currentGym=localStorage.getItem("lvt_current_gym")||"";
+let currentRating=0;
 if(settings.aiApiKey&&!settings.aiKeyAnthropic){settings.aiKeyAnthropic=settings.aiApiKey;settings.aiProvider="anthropic";}
 if(settings.aiModel&&settings.aiModelAnthropic==="claude-sonnet-5"){settings.aiModelAnthropic=settings.aiModel;}
-if(["gemini-1.5-flash","gemini-2.0-flash","gemini-2.0-flash-001"].includes(settings.aiModelGemini)){
-  settings.aiModelGemini="gemini-3.5-flash-lite";
-}
+if(settings.aiModelGemini==="gemini-2.0-flash"){settings.aiModelGemini="gemini-2.5-flash";}
 let currentDay=localStorage.getItem("lvt_current")||localStorage.getItem("lvt_day")||(plan[0]&&plan[0].id);
 if(!plan.find(d=>d.id===currentDay))currentDay=plan[0]?plan[0].id:null;
 
@@ -788,15 +810,57 @@ function renderDayRail(){
       <span>${esc(d.label||"DIA")}</span>${d.rest?'<span class="day-tab-dot" aria-hidden="true"></span>':""}
     </button>`).join("");
 }
-function selectDay(id){currentDay=id;localStorage.setItem("lvt_current",id);renderTreino();}
+function selectDay(id){currentDay=id;localStorage.setItem("lvt_current",id);currentRating=0;renderTreino();}
 
 function lastSessionText(d){
   const log=logs.find(l=>l.dayId===d.id||l.day===d.id);
   return log?`Último registro: ${new Date(log.date).toLocaleDateString("pt-BR")}`:"";
 }
 
+/* ---------- academia ---------- */
+function renderGymSelect(){
+  const sel=$("gymSelect");
+  const gyms=settings.gyms||[];
+  sel.innerHTML=(gyms.length?gyms.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join(""):"")
+    +`<option value="__none__">Sem academia definida</option><option value="__add__">+ Nova academia</option>`;
+  sel.value=gyms.includes(currentGym)?currentGym:"__none__";
+}
+function onGymSelectChange(){
+  const v=$("gymSelect").value;
+  if(v==="__add__"){
+    const name=(prompt("Nome da academia:")||"").trim();
+    if(name){
+      if(!settings.gyms)settings.gyms=[];
+      if(!settings.gyms.includes(name))settings.gyms.push(name);
+      currentGym=name;
+      localStorage.setItem("lvt_current_gym",currentGym);
+      saveAll();
+    }
+    renderGymSelect();
+    return;
+  }
+  currentGym=v==="__none__"?"":v;
+  localStorage.setItem("lvt_current_gym",currentGym);
+}
+function removeCurrentGym(){
+  if(!currentGym){toast("Nenhuma academia selecionada.");return;}
+  if(!confirm(`Remover "${currentGym}" da lista de academias? Os treinos já salvos mantêm o registro.`))return;
+  settings.gyms=(settings.gyms||[]).filter(g=>g!==currentGym);
+  currentGym="";
+  localStorage.setItem("lvt_current_gym","");
+  saveAll();
+  renderGymSelect();
+}
+
+/* ---------- nota do treino ---------- */
+function renderRatingStars(){
+  $("ratingStars").innerHTML=[1,2,3,4,5].map(n=>`<button type="button" class="star-btn ${n<=currentRating?"on":""}" data-action="rate" data-n="${n}" aria-label="Nota ${n}">★</button>`).join("");
+}
+
 function renderTreino(){
   renderDayRail();
+  renderGymSelect();
+  renderRatingStars();
   const d=curDay();
   if(!d){$("title").textContent="";$("sub").textContent="";$("list").innerHTML=emptyState("＋","Nenhum dia cadastrado","Use \"Editar dias\" para criar o primeiro dia de treino.");return;}
   $("title").textContent=d.name;
@@ -809,6 +873,8 @@ function renderTreino(){
   $("finishBtn").style.display=d.rest?"none":"inline-flex";
   $("editExBtn").style.display=d.rest?"none":"inline-flex";
   $("addExBtn").style.display=d.rest?"none":"inline-flex";
+  $("gymRow").style.display=d.rest?"none":"flex";
+  $("ratingRow").style.display=d.rest?"none":"flex";
   if(d.rest){
     $("list").innerHTML=emptyState("🌙","Dia de descanso","Recupere-se: priorize sono, alimentação e, se quiser, uma caminhada leve.");
     return;
@@ -894,8 +960,9 @@ function finishSession(){
     if(v.done||v.kg||v.reps)rowsOut.push({exercise:e[0],set:s+1,kg:+v.kg||0,reps:+v.reps||0,rir:v.rir===""?+settings.rir:(+v.rir||0)});
   }));
   if(!rowsOut.length){toast("Preencha ou marque ao menos uma série.");return;}
-  logs.unshift({date:new Date().toISOString(),dayId:d.id,name:d.name,rows:rowsOut});
+  logs.unshift({date:new Date().toISOString(),dayId:d.id,name:d.name,rows:rowsOut,gym:currentGym||null,rating:currentRating||0});
   localStorage.removeItem(draftKey());
+  currentRating=0;
   saveAll();
   renderTreino();
   renderHistory();
@@ -1046,13 +1113,47 @@ function guide(name){
 }
 
 /* ---------- histórico ---------- */
+function sessionVolume(log){
+  return log.rows.reduce((s,r)=>s+(r.kg||0)*(r.reps||0),0);
+}
+function getFilteredLogs(){
+  const gymFilter=$("histGymFilter")?$("histGymFilter").value:"";
+  return gymFilter?logs.filter(l=>l.gym===gymFilter):logs;
+}
+function populateHistGymFilter(){
+  const sel=$("histGymFilter");
+  const prev=sel.value;
+  const gyms=[...new Set(logs.map(l=>l.gym).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+  sel.innerHTML=`<option value="">Todas as academias</option>`+gyms.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join("");
+  if(gyms.includes(prev))sel.value=prev;
+}
 function renderHistory(){
-  $("hist").innerHTML=logs.length?logs.map(l=>`
+  populateHistGymFilter();
+  const filtered=getFilteredLogs();
+  $("hist").innerHTML=filtered.length?filtered.map((l,i)=>{
+    const prev=filtered.slice(i+1).find(p=>p.dayId===l.dayId);
+    let deltaBadge="";
+    if(prev){
+      const prevVol=sessionVolume(prev),curVol=sessionVolume(l);
+      if(prevVol>0){
+        const pct=((curVol-prevVol)/prevVol)*100;
+        const cls=pct>0?"pos":pct<0?"neg":"";
+        deltaBadge=`<span class="delta-badge ${cls}">${pct>0?"+":""}${pct.toFixed(1)}% vs. anterior</span>`;
+      }
+    }
+    const stars=l.rating?"⭐".repeat(l.rating):"";
+    return `
     <div class="card log-card">
       <div class="row between"><b>${esc(l.name)}</b><span class="muted">${new Date(l.date).toLocaleDateString("pt-BR")}</span></div>
-      <p class="muted" style="margin:4px 0 8px">${l.rows.length} séries registradas</p>
+      <div class="row wrap" style="gap:6px;margin:6px 0 8px">
+        ${l.gym?`<span class="badge">📍 ${esc(l.gym)}</span>`:""}
+        ${deltaBadge}
+        ${stars?`<span class="badge">${stars}</span>`:""}
+      </div>
+      <p class="muted" style="margin:0 0 8px">${l.rows.length} séries registradas</p>
       <div class="log-rows">${l.rows.map(r=>`<div class="log-row"><span>${esc(r.exercise)}</span><span>${r.kg||"—"} ${esc(settings.unit)} × ${r.reps||"—"} <span class="muted">RIR ${r.rir}</span></span></div>`).join("")}</div>
-    </div>`).join(""):emptyState("📓","Nenhum treino salvo ainda","Finalize uma sessão em Treino para começar seu histórico.");
+    </div>`;
+  }).join(""):emptyState("📓","Nenhum treino salvo ainda","Finalize uma sessão em Treino para começar seu histórico.");
   populateChartExerciseSelect();
   renderExerciseChart();
 }
@@ -1060,7 +1161,7 @@ function renderHistory(){
 /* ---------- gráfico de evolução por exercício ---------- */
 function getExerciseNamesInLogs(){
   const set=new Set();
-  logs.forEach(l=>l.rows.forEach(r=>{if(r.kg>0)set.add(r.exercise);}));
+  getFilteredLogs().forEach(l=>l.rows.forEach(r=>{if(r.kg>0)set.add(r.exercise);}));
   return [...set].sort((a,b)=>a.localeCompare(b,"pt-BR"));
 }
 function populateChartExerciseSelect(){
@@ -1095,7 +1196,7 @@ function renderExerciseChart(){
   const name=$("chartExerciseSelect").value;
   if(!name){wrap.innerHTML=emptyState("📈","Sem dados ainda","Finalize treinos com carga preenchida para ver sua evolução aqui.");return;}
   const points=[];
-  [...logs].reverse().forEach(l=>{
+  [...getFilteredLogs()].reverse().forEach(l=>{
     const rowsForEx=l.rows.filter(r=>r.exercise===name&&r.kg>0);
     if(!rowsForEx.length)return;
     const topKg=Math.max(...rowsForEx.map(r=>r.kg));
@@ -1106,14 +1207,25 @@ function renderExerciseChart(){
   const first=points[0],last=points[points.length-1];
   const diff=last.value-first.value;
   const diffTxt=diff===0?"sem variação":`${diff>0?"+":""}${diff.toFixed(1)} ${esc(settings.unit)}`;
+  let sinceLastTxt="—",sinceLastCls="";
+  if(points.length>=2){
+    const prevVol=points[points.length-2].volume,curVol=points[points.length-1].volume;
+    if(prevVol>0){
+      const pct=((curVol-prevVol)/prevVol)*100;
+      sinceLastTxt=`${pct>0?"+":""}${pct.toFixed(1)}%`;
+      sinceLastCls=pct>0?"pos":pct<0?"neg":"";
+    }
+  }
   wrap.innerHTML=`
     <div class="chart-stats">
       <div><span class="muted tiny">Carga máx. atual</span><br><b>${last.value}${esc(settings.unit)}</b></div>
+      <div><span class="muted tiny">Desde o treino anterior</span><br><b class="${sinceLastCls}">${sinceLastTxt}</b></div>
       <div><span class="muted tiny">Variação total</span><br><b class="${diff>0?"pos":diff<0?"neg":""}">${diffTxt}</b></div>
       <div><span class="muted tiny">Sessões</span><br><b>${points.length}</b></div>
     </div>
     ${buildLineChartSVG(points,600,170)}
-    <div class="chart-dates"><span>${new Date(first.date).toLocaleDateString("pt-BR")}</span><span>${new Date(last.date).toLocaleDateString("pt-BR")}</span></div>`;
+    <div class="chart-dates"><span>${new Date(first.date).toLocaleDateString("pt-BR")}</span><span>${new Date(last.date).toLocaleDateString("pt-BR")}</span></div>
+    <p class="muted" style="font-size:11px;margin-top:8px">"Desde o treino anterior" compara o volume total (carga × repetições) deste exercício entre as duas últimas sessões registradas.</p>`;
 }
 
 /* ---------- biblioteca ---------- */
@@ -1169,7 +1281,7 @@ function applyAppearance(){
   $("heightCm").value=settings.heightCm||"";
   $("aiProvider").value=settings.aiProvider||"gemini";
   $("aiKeyGemini").value=settings.aiKeyGemini||"";
-  const geminiModel=settings.aiModelGemini||"gemini-3.5-flash-lite";
+  const geminiModel=settings.aiModelGemini||"gemini-2.5-flash";
   const knownGeminiModels=[...$("aiModelGemini").options].map(o=>o.value);
   if(knownGeminiModels.includes(geminiModel)){
     $("aiModelGemini").value=geminiModel;
@@ -1223,7 +1335,7 @@ function saveAiSettings(){
   settings.aiProvider=$("aiProvider").value;
   settings.aiKeyGemini=$("aiKeyGemini").value.trim();
   const geminiSel=$("aiModelGemini").value;
-  settings.aiModelGemini=geminiSel==="custom"?($("aiModelGeminiCustom").value.trim()||"gemini-3.5-flash-lite"):geminiSel;
+  settings.aiModelGemini=geminiSel==="custom"?($("aiModelGeminiCustom").value.trim()||"gemini-2.5-flash"):geminiSel;
   settings.aiKeyAnthropic=$("aiKeyAnthropic").value.trim();
   settings.aiModelAnthropic=$("aiModelAnthropic").value;
   saveAll();
@@ -1292,7 +1404,7 @@ function buildAiSystemPrompt(){
     const bmi=settings.weightKg/((settings.heightCm/100)**2);
     bodyLine=`Peso: ${settings.weightKg}kg, altura: ${settings.heightCm}cm, IMC aproximado: ${bmi.toFixed(1)}.`;
   }
-  const recentLogs=logs.slice(0,6).map(l=>`${new Date(l.date).toLocaleDateString("pt-BR")} — ${l.name}: ${l.rows.slice(0,4).map(r=>`${r.exercise} ${r.kg}${settings.unit}x${r.reps}`).join("; ")}`).join("\n");
+  const recentLogs=logs.slice(0,6).map(l=>`${new Date(l.date).toLocaleDateString("pt-BR")}${l.gym?` (${l.gym})`:""}${l.rating?` [nota ${l.rating}/5]`:""} — ${l.name}: ${l.rows.slice(0,4).map(r=>`${r.exercise} ${r.kg}${settings.unit}x${r.reps}`).join("; ")}`).join("\n");
   return `Você é um assistente de treino de musculação dentro do app pessoal "Low Volume Tracker", conversando diretamente com o dono do app. Seja direto, prático e baseado em evidências de treinamento de força. Responda em português do Brasil, de forma objetiva.
 Plano de treino atual do usuário: ${planSummary||"nenhum dia cadastrado"}.
 ${bodyLine}
@@ -1325,41 +1437,61 @@ async function callAnthropic(turns,systemPrompt){
   const textOut=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n")||"(sem resposta)";
   return {ok:true,text:textOut};
 }
-const GEMINI_DEFAULT_MODEL="gemini-3.5-flash-lite";
-const GEMINI_FALLBACK_MODELS=[
-  "gemini-3.8-flash",
-  "gemini-3.7-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.5-flash-lite",
-  "gemini-3.1-flash-lite",
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite"
-];
 function isModelUnavailableError(msg){
   msg=(msg||"").toLowerCase();
-  return msg.includes("no longer available")||
-    msg.includes("not found for api")||
-    msg.includes("not supported for generatecontent")||
-    msg.includes("is not found")||
-    msg.includes("not found")||
-    msg.includes("unsupported");
+  return msg.includes("no longer available")||msg.includes("not found for api")||msg.includes("not supported for generatecontent")||msg.includes("is not found");
 }
-async function listAvailableGeminiModels(){
+async function fetchGeminiModels(key){
   try{
-    const resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models?key="+encodeURIComponent(settings.aiKeyGemini),{
-      headers:{"x-goog-api-key":settings.aiKeyGemini}
-    });
-    if(!resp.ok)return [];
+    const resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models",{headers:{"x-goog-api-key":key}});
     const data=await resp.json();
-    return (data.models||[])
+    if(!resp.ok)return {ok:false,error:(data&&data.error&&data.error.message)||`Erro ${resp.status}`};
+    const models=(data.models||[])
       .filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent"))
-      .map(m=>String(m.name||"").replace(/^models\//,""))
+      .map(m=>(m.name||"").replace(/^models\//,""))
       .filter(Boolean);
-  }catch(_){ return []; }
+    return {ok:true,models};
+  }catch(e){
+    return {ok:false,error:"Não consegui conectar à API do Google. Verifique sua internet."};
+  }
+}
+function sortGeminiModels(models){
+  return [...models].sort((a,b)=>{
+    const af=a.includes("flash")?0:1,bf=b.includes("flash")?0:1;
+    if(af!==bf)return af-bf;
+    return a.localeCompare(b);
+  });
+}
+function populateGeminiModelSelect(models,preferred){
+  const sel=$("aiModelGemini");
+  const sorted=sortGeminiModels(models);
+  sel.innerHTML=sorted.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join("")+`<option value="custom">Outro (digitar o nome do modelo)</option>`;
+  const pick=sorted.includes(preferred)?preferred:sorted[0];
+  if(pick)sel.value=pick;
+  $("aiModelGeminiCustom").style.display="none";
+}
+async function testGeminiKey(){
+  const key=$("aiKeyGemini").value.trim();
+  if(!key){toast("Cole a chave do Gemini primeiro.");return;}
+  const btn=$("testGeminiBtn");
+  const oldLabel=btn.textContent;
+  btn.disabled=true;btn.textContent="Testando...";
+  $("aiTestResult").innerHTML="";
+  const r=await fetchGeminiModels(key);
+  if(!r.ok){
+    $("aiTestResult").innerHTML=`<span style="color:var(--danger)">❌ ${esc(r.error)}</span><br>Confira se colou a chave inteira e se ela foi criada em aistudio.google.com/apikey.`;
+  }else if(!r.models.length){
+    $("aiTestResult").innerHTML=`<span style="color:var(--danger)">❌ A chave é válida, mas nenhum modelo de conversa está disponível para ela.</span><br>Isso costuma significar que a chave foi criada por um caminho diferente do Google AI Studio (ex.: direto no Google Cloud Console, sem a API habilitada).`;
+  }else{
+    populateGeminiModelSelect(r.models,settings.aiModelGemini);
+    settings.aiModelGemini=$("aiModelGemini").value;
+    saveAll();
+    $("aiTestResult").innerHTML=`<span style="color:var(--success)">✅ Chave válida! ${r.models.length} modelo(s) disponível(is) — selecionei "${esc(settings.aiModelGemini)}" para você.</span>`;
+  }
+  btn.disabled=false;btn.textContent=oldLabel;
 }
 async function callGeminiOnce(model,contents,systemPrompt){
-  const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+  const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
     method:"POST",
     headers:{"content-type":"application/json","x-goog-api-key":settings.aiKeyGemini},
     body:JSON.stringify({system_instruction:{parts:[{text:systemPrompt}]},contents})
@@ -1377,40 +1509,27 @@ async function callGemini(turns,systemPrompt){
     parts.push({text:m.text});
     return {role:m.role==="assistant"?"model":"user",parts};
   });
+  const firstModel=settings.aiModelGemini||"gemini-2.5-flash";
+  let result=await callGeminiOnce(firstModel,contents,systemPrompt);
+  if(result.ok)return result;
+  if(!isModelUnavailableError(result.text))return result;
 
-  const firstModel=settings.aiModelGemini||GEMINI_DEFAULT_MODEL;
-  const available=await listAvailableGeminiModels();
-
-  // Se a API devolver a lista de modelos disponíveis para esta chave, usamos
-  // somente modelos que realmente suportam generateContent. Isso evita que
-  // um modelo antigo salvo no localStorage quebre o chat.
-  let candidates;
-  if(available.length){
-    const preferred=[firstModel,...GEMINI_FALLBACK_MODELS];
-    candidates=[...new Set(preferred.filter(m=>available.includes(m)))];
-    // Se o modelo escolhido for customizado, ainda tentamos usá-lo quando
-    // a própria API confirmou que ele está disponível.
-    if(available.includes(firstModel) && !candidates.includes(firstModel)) candidates.unshift(firstModel);
-    // Como último recurso, use qualquer modelo de geração disponível.
-    if(!candidates.length)candidates=available.slice(0,10);
-  }else{
-    candidates=[...new Set([firstModel,...GEMINI_FALLBACK_MODELS])];
-  }
-
-  let lastResult=null;
-  for(const model of candidates){
-    lastResult=await callGeminiOnce(model,contents,systemPrompt);
-    if(lastResult.ok){
-      if(model!==settings.aiModelGemini){
-        settings.aiModelGemini=model;
-        saveAll();
-        applyAppearance();
-      }
-      return lastResult;
+  // o modelo configurado sumiu: pergunta pro Google quais modelos essa chave
+  // realmente pode usar agora, em vez de continuar chutando nomes fixos
+  const listing=await fetchGeminiModels(settings.aiKeyGemini);
+  if(!listing.ok||!listing.models.length)return result;
+  for(const model of sortGeminiModels(listing.models)){
+    if(model===firstModel)continue;
+    const r2=await callGeminiOnce(model,contents,systemPrompt);
+    if(r2.ok){
+      settings.aiModelGemini=model;
+      saveAll();
+      applyAppearance();
+      return r2;
     }
-    if(!isModelUnavailableError(lastResult.text))return lastResult;
+    if(!isModelUnavailableError(r2.text))return r2;
   }
-  return lastResult||{ok:false,text:"Nenhum modelo Gemini com generateContent está disponível para esta chave."};
+  return result;
 }
 async function sendAiMessage(){
   const text=$("aiInput").value.trim();
@@ -1457,6 +1576,12 @@ $("list").addEventListener("click",e=>{
   else if(action==="guide")guide(t.dataset.name);
 });
 $("list").addEventListener("input",syncDraft);
+$("ratingStars").addEventListener("click",e=>{
+  const t=e.target.closest('[data-action="rate"]');if(!t)return;
+  const n=+t.dataset.n;
+  currentRating=currentRating===n?0:n;
+  renderRatingStars();
+});
 $("lib").addEventListener("click",e=>{
   const t=e.target.closest('[data-action="guide"]');if(!t)return;
   guide(t.dataset.name);
