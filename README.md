@@ -6,18 +6,17 @@ offline depois da primeira visita.
 
 ## O que mudou nesta versão
 
-- **Fotos de progresso** com comparação lado a lado (guardadas no aparelho, fora do backup).
-- **Sincronização entre aparelhos** via Gist privado do GitHub (token só com permissão `gist`).
-- **Perfis** separados no mesmo aparelho.
-- **Lembretes de treino** (aviso no app + notificação; em segundo plano só no Chrome/Android instalado).
-- **Modo foco**: um exercício por vez, botões grandes, tela sempre ligada.
-
-- **Painel semanal** (Histórico): meta de treinos, sequência de semanas, calendário heatmap e séries por músculo.
-- **Modelos prontos** (PPL, Upper/Lower, Full Body, ABC), **calculadora de anilhas**, **reordenar exercícios**, **superset**, **anotação por exercício** e **descanso automático por exercício**.
-- **Peso corporal com gráfico** e **medidas** (Config → Avaliação física).
-- **IA**: gerar treino e aplicar direto no plano, analisar a semana, diagnóstico de estagnação e troca de exercício.
-- **Backup** (exportar/importar), **recordes (PRs)**, **resumo pós-treino**, sugestão de progressão e correções da IA.
-
+- **Aquecimento guiado**: na tela de Treino o app mostra *em quais exercícios*
+  aquecer e *com quais cargas*. Regra: aquecimento completo (2–3 séries
+  progressivas, ex.: 50% × 8, 70% × 5, 85% × 2) no 1º exercício de cada
+  região do corpo do dia; os demais, que usam músculos já aquecidos, pedem
+  só um feeder (~65% × 5). As cargas saem de uma porcentagem da sua carga de
+  trabalho — a que você ajustar ali, a digitada hoje ou a da sua última
+  sessão (priorizando a academia atual) — arredondada de 2,5 em 2,5 kg
+  (5 em 5 lb). O botão "▶ Iniciar guia" leva você passo a passo, com
+  cronômetro de descanso entre as séries (não altera o seu descanso padrão).
+  Exercícios por tempo (prancha etc.) ficam de fora; os passos feitos ficam
+  salvos até você finalizar o treino.
 - **Academia**: escolha onde está treinando direto na tela de Treino (lista
   que você mesmo monta). Em Histórico, filtre por academia para comparar sua
   evolução separadamente em cada lugar que você treina.
