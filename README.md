@@ -6,6 +6,21 @@ offline depois da primeira visita.
 
 ## O que mudou nesta versão
 
+- **Meta de hoje (progressão automática)**: cada exercício mostra o que você
+  fez na última sessão (carga × reps, RIR, data e academia) e *quanto tentar
+  a mais*, em carga ou em reps, pela regra da dupla progressão: bateu o topo
+  da faixa de reps em todas as séries do topo — ou sobrou muita reserva (RIR
+  médio ≥ 3) — a meta é subir a carga (~3%, em passos de 2,5 kg / 5 lb), com
+  as reps esperadas na carga nova; no meio da faixa, mesma carga e +1 rep;
+  abaixo do mínimo, mantém a carga e busca o mínimo. Prioriza o histórico da
+  academia atual (e avisa quando usou o de outra). O botão "Usar meta"
+  preenche as séries, e os campos já mostram a meta como sugestão.
+  Exercícios sem histórico mostram só uma orientação; os de tempo (prancha
+  etc.) não têm meta.
+- **Aquecimento automático a partir dos treinos passados**: o aquecimento
+  guiado agora usa a *meta de hoje* como carga de trabalho (ex.: se a meta
+  é 82,5 kg, a rampa é calculada sobre 82,5 kg), e o resumo do card lista, em
+  cada exercício a aquecer, a meta correspondente.
 - **Aquecimento guiado**: na tela de Treino o app mostra *em quais exercícios*
   aquecer e *com quais cargas*. Regra: aquecimento completo (2–3 séries
   progressivas, ex.: 50% × 8, 70% × 5, 85% × 2) no 1º exercício de cada

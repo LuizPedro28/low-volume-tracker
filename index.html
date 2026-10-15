@@ -206,6 +206,11 @@ button.full{width:100%;margin-top:8px}
 .warm-big{font-family:var(--font-display);font-size:44px;color:var(--accent);text-align:center;margin:10px 0 2px;font-variant-numeric:tabular-nums}
 .warm-sub{text-align:center;font-size:13px;margin-top:4px}
 .warm-badge{margin-left:6px;color:var(--accent)}
+.goal-box{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:10px;padding:9px 11px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+.goal-box .muted{flex:0 0 100%}
+.goal-line{font-size:13px}
+.goal-line b{color:var(--accent)}
+.goal-btn{margin-left:auto;font-size:12px;padding:6px 10px}
 .rating-stars{display:inline-flex;gap:1px}
 .star-btn{background:none;border:none;padding:2px;font-size:19px;line-height:1;color:var(--line);cursor:pointer}
 .star-btn.on{color:var(--accent)}
@@ -387,6 +392,7 @@ button.full{width:100%;margin-top:8px}
     <details class="warm-details">
       <summary>Como o app decide o aquecimento</summary>
       <p class="muted">Aquecimento completo (3 séries progressivas) no 1º exercício de cada região do corpo no dia; os demais que usam músculos já aquecidos pedem só <b>feeder</b>: 1 série leve (~65% × 5), ou 2 séries nos exercícios pesados (até 8 reps). As cargas são porcentagens da sua carga de trabalho, que vem de: valor que você ajustar aqui, depois a carga digitada hoje, depois sua última sessão (priorizando a academia atual). Arredondado de 2,5 em 2,5 kg (5 em 5 lb).</p>
+      <p class="muted"><b>Meta de hoje (dupla progressão):</b> o app olha sua última sessão do exercício (na academia atual, se houver). Se você bateu o topo da faixa de reps em todas as séries do topo — ou sobrou muita reserva (RIR médio ≥ 3) — a meta é subir a carga (~3%, em passos de 2,5 kg / 5 lb) com as reps esperadas nela. Se ficou no meio da faixa: mesma carga e +1 rep. Se ficou abaixo do mínimo: mantém a carga e busca o mínimo de reps. Exercícios sem histórico não têm meta.</p>
       <p class="muted">Feeder: 1–3 séries leves, sem fadiga. PAP/PAPE é opcional e não deve prejudicar a série efetiva. Séries efetivas: normalmente RIR 0–2.</p>
     </details>
   </div>
@@ -523,6 +529,7 @@ button.full{width:100%;margin-top:8px}
       <div class="info-item"><b>Registro</b><br><span class="muted">Carga, reps e RIR ficam salvos automaticamente como rascunho enquanto você treina, usando localStorage.</span></div>
       <div class="info-item"><b>Finalização</b><br><span class="muted">Ao finalizar, as séries preenchidas ou marcadas entram no histórico e o rascunho é limpo para a próxima vez.</span></div>
       <div class="info-item"><b>Evolução</b><br><span class="muted">Em Histórico, escolha um exercício para ver o gráfico de carga e a % de evolução desde o treino anterior.</span></div>
+      <div class="info-item"><b>Meta de hoje</b><br><span class="muted">Cada exercício mostra o que você fez na última vez e quanto tentar a mais (carga ou reps). Toque em "Usar meta" para preencher as séries.</span></div>
       <div class="info-item"><b>Aquecimento guiado</b><br><span class="muted">Na tela de Treino, o app diz em quais exercícios aquecer e com quais cargas (a partir da sua última sessão) e te leva passo a passo, com cronômetro de descanso.</span></div>
       <div class="info-item"><b>Academia</b><br><span class="muted">Escolha onde está treinando na tela de Treino. Em Histórico, filtre por academia para comparar a evolução separadamente.</span></div>
       <div class="info-item"><b>Nota do treino</b><br><span class="muted">Dê de 1 a 5 estrelas antes de finalizar a sessão — fica salva junto no histórico.</span></div>
@@ -923,103 +930,27 @@ function renderTreino(){
   $("list").innerHTML=d.ex.map((e,i)=>exerciseRow(e,i,draft)).join("");
 }
 
-
-// --- CALCULADORA DE AQUECIMENTO AUTOMÁTICO ---
-function getWarmupRamps(lastWeight) {
-  if (!lastWeight || lastWeight <= 0) return [];
-  
-  return [
-    { step: "Série 1 (50%)", weight: Math.round(lastWeight * 0.5 * 2) / 2, reps: "8-10 reps" },
-    { step: "Série 2 (70%)", weight: Math.round(lastWeight * 0.7 * 2) / 2, reps: "4-5 reps" },
-    { step: "Série 3 (85%)", weight: Math.round(lastWeight * 0.85 * 2) / 2, reps: "1-2 reps" }
-  ];
-}
-
-// --- SUGESTÃO DE PROGRESSÃO DE CARGA ---
-function getProgressionTarget(lastSet, targetRepRange = "6–10") {
-  if (!lastSet || !lastSet.weight) {
-    return { title: "Primeira sessão", desc: "Defina sua carga inicial de trabalho." };
-  }
-
-  const parts = targetRepRange.split("–").map(v => parseInt(v.trim()));
-  const minReps = parts[0] || 6;
-  const maxReps = parts[1] || 10;
-
-  const lastWeight = parseFloat(lastSet.weight);
-  const lastReps = parseInt(lastSet.reps) || 0;
-
-  if (lastReps >= maxReps) {
-    const nextWeight = lastWeight + (lastWeight >= 50 ? 4 : 2);
-    return {
-      type: "increase_weight",
-      title: "🚀 Hora de Subir Carga!",
-      desc: `No último treino você fez ${lastReps} reps com ${lastWeight}kg. Meta de hoje: **${nextWeight} kg** para **${minReps}–${minReps + 2} reps**.`
-    };
-  } else {
-    return {
-      type: "increase_reps",
-      title: "🎯 Meta de Progressão de Reps",
-      desc: `Mantenha **${lastWeight} kg** e busque fazer **${lastReps + 1} a ${maxReps} reps** hoje.`
-    };
-  }
-}
-
-function renderExerciseHeaderInfo(exerciseName, lastHistory, repRange) {
-  const progression = getProgressionTarget(lastHistory, repRange);
-  const ramps = getWarmupRamps(lastHistory?.weight);
-
-  let html = `
-    <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-      <div style="font-size: 0.9em; color: #ffca28; font-weight: bold; margin-bottom: 4px;">
-        ${progression.title}
-      </div>
-      <div style="font-size: 0.85em; color: #e0e0e0;">
-        ${progression.desc.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}
-      </div>
-  `;
-
-  if (ramps.length > 0) {
-    html += `
-      <details style="margin-top: 8px; font-size: 0.82em; color: #aaa;">
-        <summary style="cursor: pointer; color: #4fc3f7;">🔥 Ver Aquecimento Sugerido (${lastHistory.weight}kg ref)</summary>
-        <ul style="padding-left: 16px; margin: 6px 0 0 0; list-style-type: square;">
-          ${ramps.map(r => `<li><b>${r.step}:</b> ${r.weight} kg × ${r.reps}</li>`).join('')}
-        </ul>
-      </details>
-    `;
-  }
-
-  html += `</div>`;
-  return html;
-}
-
 function exerciseRow(e,i,draft){
-  const lLoad = lastTopLoad(e[0]);
-  const lastHistory = lLoad ? { weight: lLoad, reps: 0 } : null;
-  // Attempt to find reps from last session
-  if(lLoad){
-    const lastLog = [...getFilteredLogs()].reverse().find(log => log.rows.some(r => r.exercise === e[0] && r.kg === lLoad));
-    if(lastLog){
-       const r = lastLog.rows.find(r => r.exercise === e[0] && r.kg === lLoad);
-       if(r) lastHistory.reps = r.reps;
-    }
-  }
-  const headerInfo = renderExerciseHeaderInfo(e[0], lastHistory, e[1]);
-
   const info=find(e[0]);
+  const pg=progressionFor(e[0],e[1]);
+  const hasGoal=!!(pg&&pg.last);
+  const kgPh=hasGoal&&pg.targetKg?fmtLoad(pg.targetKg):esc(settings.unit);
+  const repsPh=hasGoal?String(pg.targetReps):esc(e[1]);
+  let goal="";
+  if(hasGoal)goal=`<div class="goal-box"><div class="muted tiny">${esc(lastText(pg))}</div><div class="goal-line">🎯 Hoje: <b>${esc(goalText(pg))}</b></div><button type="button" class="ghost goal-btn" data-action="use-goal" data-idx="${i}">Usar meta</button></div>`;
+  else if(pg&&pg.first)goal=`<div class="goal-box"><div class="muted tiny">🎯 Primeira vez por aqui: ache uma carga que feche ${rangeText(pg.rr)} reps com 1–2 de reserva.</div></div>`;
   let rows="";
   for(let s=0;s<e[2];s++){
     const v=(draft[i]||[])[s]||{};
     rows+=`<div class="set">
       <span class="set-index">${s+1}</span>
-      <input class="kg" type="number" step=".5" inputmode="decimal" value="${v.kg||""}" placeholder="${esc(settings.unit)}">
-      <input class="reps" type="number" inputmode="numeric" value="${v.reps||""}" placeholder="${esc(e[1])}">
+      <input class="kg" type="number" step=".5" inputmode="decimal" value="${v.kg||""}" placeholder="${kgPh}">
+      <input class="reps" type="number" inputmode="numeric" value="${v.reps||""}" placeholder="${repsPh}">
       <input class="rr" type="number" min="0" max="5" value="${v.rir??""}" placeholder="${esc(String(settings.rir))}">
       <button type="button" class="ok ${v.done?"on":""}" data-action="toggle" data-idx="${i}" data-set="${s}" aria-label="Marcar série ${s+1} concluída">✓</button>
     </div>`;
   }
   return `<div class="ex card">
-    ${headerInfo}
     <div class="exercise-top">
       <div>
         <div class="exercise-name">${esc(e[0])}</div>
@@ -1027,6 +958,7 @@ function exerciseRow(e,i,draft){
       </div>
       <button type="button" class="ghost guide-btn" data-action="guide" data-name="${esc(e[0])}">Ver execução</button>
     </div>
+    ${goal}
     <div class="set-labels"><span>Nº</span><span>Carga</span><span>Reps</span><span>RIR</span><span></span></div>
     ${rows}
     <div class="actions">
@@ -1089,6 +1021,96 @@ function finishSession(){
   toast("Treino salvo!");
 }
 
+/* ---------- progressão automática (a partir dos treinos passados) ---------- */
+function loadStep(){return settings.unit==="lb"?5:2.5;}
+function repRange(range){
+  const s=String(range||"");
+  if(isTimeBased(s))return null;
+  const n=(s.match(/\d+/g)||[]).slice(0,2).map(Number);
+  if(!n.length)return null;
+  return n.length>1&&n[1]>n[0]?{lo:n[0],hi:n[1]}:{lo:n[0],hi:n[0]};
+}
+/* última sessão com o exercício — prioriza a academia atual */
+function lastSessionFor(name){
+  const has=l=>l.rows.some(r=>r.exercise===name&&(r.kg>0||r.reps>0));
+  let log=null,other=false;
+  if(currentGym)log=logs.find(l=>l.gym===currentGym&&has(l));
+  if(!log){log=logs.find(has);other=!!(log&&currentGym&&log.gym!==currentGym);}
+  if(!log)return null;
+  return {log,other,rows:log.rows.filter(r=>r.exercise===name&&(r.kg>0||r.reps>0)).sort((a,b)=>a.set-b.set)};
+}
+/* dupla progressão: bateu o topo da faixa (ou sobrou muita reserva) -> sobe a carga;
+   senão mantém a carga e tenta +1 rep; abaixo da faixa -> mantém e busca o mínimo */
+function progressionFor(name,range){
+  const rr=repRange(range);
+  if(!rr)return null;
+  const ls=lastSessionFor(name);
+  if(!ls)return {first:true,rr};
+  const rows=ls.rows;
+  const top=Math.max(0,...rows.map(r=>r.kg||0));
+  const topSets=top>0?rows.filter(r=>(r.kg||0)>=top):rows;
+  const reps=topSets.map(r=>r.reps||0).filter(x=>x>0);
+  if(!reps.length)return {first:true,rr};
+  const minReps=Math.min(...reps);
+  const rirs=topSets.map(r=>r.rir).filter(x=>typeof x==="number"&&!isNaN(x));
+  const avgRir=rirs.length?rirs.reduce((a,b)=>a+b,0)/rirs.length:null;
+  const out={rr,last:{date:ls.log.date,gym:ls.log.gym||null,otherGym:ls.other,top,reps,minReps,avgRir}};
+  const step=loadStep();
+  const tooEasy=avgRir!==null&&avgRir>=3&&minReps>=rr.lo;
+  if(minReps>=rr.hi||tooEasy){
+    out.mode="load";
+    if(top>0){
+      const inc=Math.max(step,Math.round(top*0.03/step)*step);
+      const newKg=top+inc;
+      const est=Math.round(30*(top*(1+minReps/30)/newKg-1)); // reps esperadas na carga nova (Epley)
+      out.targetKg=newKg;out.deltaKg=inc;
+      out.targetReps=Math.max(rr.lo,Math.min(rr.hi,est));
+    }else{ // peso do corpo: sugere carga extra
+      out.targetKg=null;out.extraKg=step;out.targetReps=rr.lo;
+    }
+  }else if(minReps<rr.lo){
+    out.mode="hold";out.targetKg=top>0?top:null;out.targetReps=rr.lo;
+  }else{
+    out.mode="reps";out.targetKg=top>0?top:null;out.targetReps=Math.min(rr.hi,minReps+1);
+  }
+  return out;
+}
+function goalText(pg){
+  const u=settings.unit;
+  if(pg.mode==="load"){
+    if(pg.targetKg)return `${fmtLoad(pg.targetKg)} ${u} × ~${pg.targetReps} reps (+${fmtLoad(pg.deltaKg)} ${u})`;
+    return `${pg.targetReps} reps com +${fmtLoad(pg.extraKg)} ${u} de carga extra`;
+  }
+  const base=pg.targetKg?`${fmtLoad(pg.targetKg)} ${u} × `:"";
+  if(pg.mode==="reps"){
+    const n=pg.targetReps-pg.last.minReps;
+    return `${base}${pg.targetReps} reps (+${n} rep${n>1?"s":""})`;
+  }
+  return `${base}${pg.targetReps} reps (mantenha a carga)`;
+}
+function lastText(pg){
+  const L=pg.last;
+  const d=new Date(L.date).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"});
+  const w=L.top>0?`${fmtLoad(L.top)} ${settings.unit} × `:"";
+  const rir=L.avgRir!==null?` · RIR ${fmtLoad(Math.round(L.avgRir*10)/10)}`:"";
+  return `Última vez (${d}${L.gym?" · "+L.gym:""}${L.otherGym?" — outra academia":""}): ${w}${L.reps.join(" · ")}${rir}`;
+}
+function rangeText(rr){return rr.lo===rr.hi?String(rr.lo):`${rr.lo}–${rr.hi}`;}
+/* preenche as séries vazias do exercício com a meta */
+function useGoal(i){
+  const d=curDay();if(!d)return;
+  const e=d.ex[i],pg=e&&progressionFor(e[0],e[1]);
+  if(!pg||!pg.last)return;
+  const card=document.querySelectorAll("#list .ex")[i];if(!card)return;
+  card.querySelectorAll(".set").forEach(row=>{
+    const kg=row.querySelector(".kg"),rp=row.querySelector(".reps");
+    if(pg.targetKg&&!kg.value)kg.value=pg.targetKg;
+    if(!rp.value)rp.value=pg.targetReps;
+  });
+  syncDraft();refreshWarm();
+  toast("Meta preenchida — ajuste se precisar.");
+}
+
 /* ---------- aquecimento guiado ---------- */
 let warmListOpen=false;
 let warmKinds={};
@@ -1138,12 +1160,17 @@ function lastTopLoad(name){
   if(currentGym){const g=pick(logs.filter(l=>l.gym===currentGym));if(g)return g;}
   return pick(logs);
 }
-/* carga de trabalho de referência: ajuste manual > digitada hoje > última sessão */
-function refLoad(name,idx,draft,ws){
+/* carga de trabalho de referência: ajuste manual > digitada hoje > meta de hoje (calculada dos treinos passados) > última sessão */
+function refLoad(name,idx,draft,ws,range){
   const m=ws.ref&&ws.ref[name];
   if(m>0)return {kg:m,src:"ajustada por você"};
   const typed=(draft[idx]||[]).map(v=>+v.kg).filter(x=>x>0);
   if(typed.length)return {kg:Math.max(...typed),src:"digitada hoje"};
+  const pg=progressionFor(name,range);
+  if(pg&&pg.last){
+    const kg=pg.targetKg||pg.last.top;
+    if(kg>0)return {kg,src:pg.mode==="load"?"meta de hoje":"último treino"};
+  }
   const l=lastTopLoad(name);
   if(l)return {kg:l,src:"último treino"};
   return {kg:null,src:null};
@@ -1163,7 +1190,8 @@ function warmPlan(d){
     if(!regs.length)return;
     const full=!(seen.has(regs[0])||covered(regs[0]));
     regs.forEach(r=>seen.add(r));
-    const ref=refLoad(name,i,draft,ws);
+    const pg=progressionFor(name,range);
+    const ref=refLoad(name,i,draft,ws,range);
     const bw=BODYWEIGHT_RE.test(name)&&!ref.kg;
     const kind=full?"warm":"feeder";
     const steps=[];let prev=0;
@@ -1173,7 +1201,7 @@ function warmPlan(d){
       steps.push({id:`${name}|${kind[0]}${steps.length}`,kind,exName:name,pct:r.pct,reps:r.reps,kg,bw});
     });
     steps.forEach((s,n)=>{s.n=n+1;s.total=steps.length;s.rest=kind==="feeder"?45:(n===steps.length-1?60:(n===0?30:45));});
-    groups.push({name,idx:i,kind,ref,steps});
+    groups.push({name,idx:i,kind,ref,pg,steps});
     steps.forEach(s=>flat.push(s));
   });
   return {flat,groups,ws};
@@ -1189,6 +1217,7 @@ function warmListHtml(plan){
   plan.groups.forEach(gr=>{
     h+=`<div class="warm-ex"><div class="warm-ex-head"><b>${esc(gr.name)}</b><span class="badge">${gr.kind==="warm"?"🔥 Aquecer":"Feeder"}</span></div>
       <div class="warm-ref"><span>Carga de trabalho:</span><input class="field-input warm-ref-input" style="width:84px;margin-top:0" type="number" step=".5" inputmode="decimal" data-name="${esc(gr.name)}" value="${gr.ref.kg||""}" placeholder="${u}"><span>${gr.ref.src?`(${esc(gr.ref.src)})`:"(informe pra calcular as cargas)"}</span></div>`;
+    if(gr.pg&&gr.pg.last)h+=`<div class="muted tiny" style="margin:0 0 6px">🎯 Meta de hoje: ${esc(goalText(gr.pg))}</div>`;
     if(!gr.steps.length)h+=`<p class="muted tiny" style="margin:4px 0 0">Carga leve demais pra uma rampa — faça 1 série fácil antes de começar.</p>`;
     gr.steps.forEach(s=>{
       h+=`<div class="warm-step ${done[s.id]?"done":""}"><button type="button" class="ok ${done[s.id]?"on":""}" data-action="warm-toggle" data-id="${esc(s.id)}" aria-label="Marcar passo">✓</button><div class="warm-text">${esc(stepText(s))}<br><span class="muted tiny">${s.pct}% · descanso ~${s.rest}s</span></div></div>`;
@@ -1206,11 +1235,11 @@ function renderWarmup(d){
   plan.groups.forEach(g=>{warmKinds[g.name]=g.kind;});
   const total=plan.flat.length,nd=plan.flat.filter(s=>done[s.id]).length;
   $("warmProgress").textContent=`${nd}/${total} passos`;
-  const w=plan.groups.filter(g=>g.kind==="warm").map(g=>g.name);
-  const f=plan.groups.filter(g=>g.kind==="feeder").map(g=>g.name);
+  const item=g=>`• ${esc(g.name)}${g.pg&&g.pg.last?` <span class="muted">— meta: ${esc(goalText(g.pg))}</span>`:""}`;
+  const w=plan.groups.filter(g=>g.kind==="warm"),f=plan.groups.filter(g=>g.kind==="feeder");
   let sum="";
-  if(w.length)sum+=`<b>🔥 Aquecer:</b> ${w.map(esc).join(", ")}`;
-  if(f.length)sum+=`${sum?"<br>":""}<b>Feeder (série leve):</b> ${f.map(esc).join(", ")}`;
+  if(w.length)sum+=`<b>🔥 Aquecer:</b><br>${w.map(item).join("<br>")}`;
+  if(f.length)sum+=`${sum?"<br>":""}<b>Feeder (série leve):</b><br>${f.map(item).join("<br>")}`;
   if(!sum)sum="Só aquecimento geral hoje — nenhum exercício pede aquecimento com carga.";
   $("warmSummary").innerHTML=sum;
   $("warmBtnStart").textContent=nd===0?"▶ Iniciar guia":(nd>=total?"✓ Rever guia":"▶ Continuar guia");
@@ -1265,6 +1294,7 @@ function renderWarmGuide(){
     h+=`<div class="warm-ex-name">${esc(cur.exName)}</div><div class="warm-sub"><span class="badge">${cur.kind==="warm"?`🔥 Aquecimento ${cur.n}/${cur.total}`:"Feeder"}</span></div>
     <div class="warm-big">${cur.kg?`${fmtLoad(cur.kg)} ${esc(settings.unit)}`:(cur.bw?"leve":`~${cur.pct}%`)} × ${cur.reps}</div>
     <div class="warm-sub muted">${cur.pct}% da carga de trabalho${gr&&gr.ref.kg?` (${fmtLoad(gr.ref.kg)} ${esc(settings.unit)})`:""} · descanso ~${cur.rest}s</div>`;
+    if(gr&&gr.pg&&gr.pg.last)h+=`<div class="warm-sub" style="margin-top:8px">🎯 Meta de trabalho: <b>${esc(goalText(gr.pg))}</b></div>`;
     if(gr&&!gr.ref.kg&&!cur.bw){
       h+=`<div class="row" style="justify-content:center;margin-top:12px;gap:6px"><input id="warmGuideRef" class="field-input" style="width:150px;margin-top:0" type="number" step=".5" inputmode="decimal" placeholder="carga de trabalho (${esc(settings.unit)})"><button type="button" data-name="${esc(cur.exName)}" onclick="applyWarmGuideRef(this)">Calcular</button></div>`;
     }
@@ -1918,6 +1948,7 @@ $("list").addEventListener("click",e=>{
   else if(action==="add-set")changeSeries(idx,1);
   else if(action==="remove-set")changeSeries(idx,-1);
   else if(action==="guide")guide(t.dataset.name);
+  else if(action==="use-goal")useGoal(idx);
 });
 $("list").addEventListener("input",syncDraft);
 $("ratingStars").addEventListener("click",e=>{
