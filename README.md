@@ -6,6 +6,48 @@ offline depois da primeira visita.
 
 ## O que mudou nesta versão
 
+- **🏁 Resumo do treino + tempo de treino**: ao finalizar, o app abre um
+  resumo com o **tempo de treino**, séries, volume (com % em relação ao último
+  treino do mesmo dia) e, exercício por exercício, se houve **progresso de
+  carga ou de repetições** em relação à última vez (mais carga, ou a mesma
+  carga com mais reps por série), além de recordes (🏆) e se a "meta de hoje"
+  foi batida (🎯). Quando nada progrediu, ele diz isso sem drama e a meta
+  continua valendo no próximo treino.
+  - O tempo começa a contar na primeira atividade do treino (digitar uma
+    carga, marcar uma série, concluir um passo do aquecimento ou abrir o modo
+    foco) e termina quando você finaliza. Se você esquecer de finalizar (mais
+    de 30 min sem nenhuma atividade), o tempo termina na última atividade em
+    vez de contar até o momento em que você tocou em finalizar. Uma sessão
+    parada há mais de 6 h é tratada como um treino novo.
+  - O modo foco mostra o tempo decorrido enquanto você treina.
+  - Cada treino no histórico mostra o tempo (⏱) e tem um botão "📊 Ver
+    resumo" para rever a comparação depois. Treinos salvos antes desta versão
+    não têm tempo registrado ("—").
+- **🎯 Modo foco**: tela cheia, um exercício por vez, pensada para usar no
+  meio do treino. Mostra a meta de hoje e o que você fez da última vez, campos
+  grandes de carga/reps/RIR (com botões −/+ de 2,5 kg e de 1 rep), as bolinhas
+  das séries, as anilhas por lado e, ao concluir cada série, inicia o descanso
+  automaticamente (com +30 s e "Pular"). Mantém a tela ligada enquanto está
+  aberto. Ao terminar a última série pede uma nota e salva o treino no
+  histórico. Tudo o que você registra ali aparece normalmente na lista de
+  exercícios.
+- **🧮 Calculadora de anilhas**: botão "🧮 Anilhas" na tela de Treino, nos
+  exercícios com barra, no modo foco e no guia de aquecimento. Diz quais
+  anilhas colocar de cada lado (com desenho), e avisa quando o peso não fecha
+  exato com as anilhas que você tem. Em Configurações → "Anilhas e barra" dá
+  para definir o peso da barra e as anilhas disponíveis na sua academia.
+- **📂 Importar treino por arquivo**: gere um plano em outra IA, escolha o
+  arquivo em Configurações → "Importar / exportar treino" e os dias e
+  exercícios entram sozinhos (substituindo ou adicionando aos que você já
+  tem). Nomes quase certos são ajustados para a biblioteca, exercícios
+  desconhecidos entram como personalizados, e dá para **desfazer** a
+  importação. Também dá para exportar seu plano atual no mesmo formato.
+  - `instrucoes-para-ia.txt` (e o botão "🤖 Copiar instruções para outra IA"):
+    texto pronto para colar em qualquer IA; ele descreve o formato, as regras e
+    a lista de exercícios da biblioteca, e pede à IA que responda só com o JSON.
+  - `modelo-treino.json`: exemplo do formato aceito.
+  - Formato: `{"formato":"low-volume-tracker/treino","versao":1,"dias":[{"aba",
+    "titulo","subtitulo","descanso","exercicios":[{"nome","series","reps"}]}]}`.
 - **Meta de hoje (progressão automática)**: cada exercício mostra o que você
   fez na última sessão (carga × reps, RIR, data e academia) e *quanto tentar
   a mais*, em carga ou em reps, pela regra da dupla progressão: bateu o topo

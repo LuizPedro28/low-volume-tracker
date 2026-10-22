@@ -1,0 +1,83 @@
+Você é um treinador de musculação experiente. Vou usar a sua resposta para IMPORTAR um plano de treino no aplicativo "Low Volume Tracker". Por isso a resposta final precisa seguir EXATAMENTE o formato descrito abaixo.
+
+## O QUE EU PRECISO DE VOCÊ
+Monte um plano de treino de acordo com os meus dados:
+- Objetivo: [hipertrofia / força / emagrecimento ...]
+- Dias de treino por semana: [ex.: 4]
+- Nível: [iniciante / intermediário / avançado]
+- Equipamentos disponíveis: [academia completa / só halteres / ...]
+- Tempo por sessão: [ex.: 60 min]
+- Limitações ou lesões: [ex.: nenhuma]
+- Preferências (opcional): [ex.: treino de baixo volume, poucas séries com alta intensidade]
+Se alguma informação acima estiver faltando ou ainda entre colchetes, FAÇA-ME PERGUNTAS antes de montar o plano.
+
+## COMO RESPONDER (IMPORTANTE)
+Quando o plano estiver pronto, responda SOMENTE com um JSON válido: sem texto antes ou depois, sem explicações e, de preferência, sem bloco de código markdown. Se quiser comentar algo, faça isso numa mensagem separada, antes do JSON.
+
+## FORMATO
+{
+  "formato": "low-volume-tracker/treino",
+  "versao": 1,
+  "dias": [
+    {
+      "aba": "SEG",
+      "titulo": "Segunda — Upper A",
+      "subtitulo": "Peito • Costas • Ombros",
+      "descanso": false,
+      "exercicios": [
+        { "nome": "Supino reto com barra", "series": 3, "reps": "5–8" },
+        { "nome": "Remada curvada com barra", "series": 3, "reps": "6–10" }
+      ]
+    },
+    {
+      "aba": "QUA",
+      "titulo": "Quarta — Descanso",
+      "subtitulo": "Recuperação",
+      "descanso": true,
+      "exercicios": []
+    }
+  ]
+}
+
+## REGRAS DOS CAMPOS
+- "dias": lista na ordem da semana, no máximo 14 dias. Inclua os dias de descanso ("descanso": true e "exercicios": []).
+- "aba": texto curto para a aba do dia (até 10 caracteres), ex.: "SEG", "PUSH A".
+- "titulo": nome da sessão. "subtitulo": grupos musculares da sessão (opcional).
+- "exercicios": em ordem de execução, no máximo 20 por dia. Coloque primeiro os exercícios compostos/mais pesados.
+- "nome": use EXATAMENTE um dos nomes da biblioteca abaixo sempre que existir um equivalente (assim o app reconhece o exercício e mostra a execução). Só invente um nome próprio se realmente não houver equivalente.
+- "series": número inteiro de séries de trabalho (1 a 8), sem contar aquecimento.
+- "reps": faixa de repetições como TEXTO, com traço longo "–" (ex.: "5–8", "8–12", "10–15"). Exercícios por tempo: "20–40 s". Unilaterais: "8–12 por lado".
+- Não inclua aquecimento, cargas (kg) nem observações: o app calcula o aquecimento e a progressão de carga sozinho.
+- Português do Brasil, aspas duplas retas no JSON, sem comentários e sem vírgula sobrando no final.
+
+## BIBLIOTECA DE EXERCÍCIOS (nomes aceitos pelo app)
+Abdômen: Elevação de pernas; Elevação de joelhos na barra
+Abdômen inferior: Abdominal infra no banco declinado
+Adutores: Adutora máquina
+Antebraço: Farmer's walk; Rosca de punho com barra
+Bíceps: Rosca direta com barra; Rosca alternada com halteres; Rosca martelo; Rosca martelo na corda; Rosca Scott; Rosca concentrada; Rosca no cabo baixa; Rosca unilateral no cabo; Rosca 21; Rosca inversa com barra; Rosca spider; Rosca com barra EZ
+Condicionamento: Escalador no step
+Core: Prancha; Prancha lateral; Dead bug; Bird dog; Pallof press; Cable chop; Ab wheel; Giro russo; Prancha com elevação de perna; Mountain climber
+Corpo inteiro: Burpee
+Costas: Barra fixa pronada; Barra fixa supinada; Barra fixa neutra; Remada baixa fechada; Remada baixa aberta; Remada unilateral com halter; Remada unilateral no cabo; Remada apoiada no banco; Remada cavalinho; Remada máquina articulada; Remada invertida; Remada curvada com barra; Remada T; Pulldown com braços retos; Puxada unilateral no pulley; Remada baixa neutra
+Deltoide: Remada alta com barra
+Deltoide anterior: Elevação frontal com halteres; Elevação frontal no cabo; Elevação frontal com anilha
+Deltoide lateral: Elevação lateral com halteres; Elevação lateral no cabo; Elevação lateral máquina; Elevação lateral inclinada
+Deltoide posterior: Face pull; Crucifixo inverso com halteres; Crucifixo inverso máquina
+Dorsais: Pullover no cabo; Puxada alta pronada; Puxada alta neutra; Puxada alta supinada
+Glúteo médio: Abdução de quadril máquina; Abdução de quadril no cabo
+Glúteos: Afundo reverso; Agachamento sumô; Agachamento goblet sumô; Hip thrust com barra; Hip thrust máquina; Glute bridge; Glute bridge unilateral; Kettlebell swing; Leg press com pés altos; Passada lateral; Cadeira extensora reversa; Coice no cabo
+Lombar: 45 graus hiperextensão
+Ombros: Desenvolvimento com halteres; Desenvolvimento máquina; Arnold press; Desenvolvimento militar com barra; Desenvolvimento no smith
+Panturrilha: Panturrilha unilateral em pé
+Panturrilhas: Panturrilha em pé; Panturrilha no leg press
+Peito: Supino reto com barra; Supino reto com halteres; Chest press máquina; Chest press convergente; Crossover alto para baixo; Crossover médio; Crucifixo máquina; Flexão de braço; Flexão inclinada; Paralelas assistidas; Pullover com halter; Peck deck (crucifixo peitoral)
+Peito inferior: Supino declinado com barra; Supino declinado com halteres
+Peito superior: Supino inclinado com barra; Supino inclinado com halteres; Crossover baixo para cima; Flexão com pés elevados
+Posterior: Terra romeno com barra; Terra romeno com halteres; Stiff com halteres; Good morning; Levantamento terra convencional; Trap bar deadlift; Levantamento terra sumô
+Posterior de coxa: Cadeira flexora; Mesa flexora deitada; Mesa flexora unilateral; Stiff com barra
+Quadríceps: Agachamento livre com barra; Agachamento frontal; Hack squat; Leg press 45°; Leg press unilateral; Agachamento goblet; Afundo para frente; Afundo búlgaro; Passada caminhando; Step-up no banco; Agachamento no smith; Cadeira extensora; Agachamento com pausa; Leg press com pés baixos; Sissy squat; Afundo com halteres no lugar; Cadeira extensora unilateral
+Reto abdominal: Abdominal na máquina; Crunch no cabo; Crunch no solo; Reverse crunch
+Sóleo: Panturrilha sentada
+Trapézio: Encolhimento com halteres; Encolhimento com barra
+Tríceps: Mergulho em máquina; Tríceps corda na polia; Tríceps barra na polia; Tríceps unilateral na polia; Tríceps francês com halter; Tríceps acima da cabeça na corda; Tríceps testa com barra; Tríceps máquina; Flexão diamante; Supino fechado; Tríceps coice com halter; Mergulho entre bancos; Tríceps na polia pegada supinada
