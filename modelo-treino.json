@@ -1,0 +1,69 @@
+{
+  "formato": "low-volume-tracker/treino",
+  "versao": 1,
+  "dias": [
+    {
+      "aba": "SEG",
+      "titulo": "Segunda — Upper A",
+      "subtitulo": "Peito • Costas • Ombros",
+      "descanso": false,
+      "exercicios": [
+        {
+          "nome": "Supino reto com barra",
+          "series": 3,
+          "reps": "5–8"
+        },
+        {
+          "nome": "Remada curvada com barra",
+          "series": 3,
+          "reps": "6–10"
+        },
+        {
+          "nome": "Desenvolvimento com halteres",
+          "series": 2,
+          "reps": "8–12"
+        },
+        {
+          "nome": "Tríceps corda na polia",
+          "series": 2,
+          "reps": "10–15"
+        }
+      ]
+    },
+    {
+      "aba": "TER",
+      "titulo": "Terça — Lower A",
+      "subtitulo": "Quadríceps • Posterior • Panturrilhas",
+      "descanso": false,
+      "exercicios": [
+        {
+          "nome": "Agachamento livre com barra",
+          "series": 3,
+          "reps": "5–8"
+        },
+        {
+          "nome": "Terra romeno com barra",
+          "series": 2,
+          "reps": "6–10"
+        },
+        {
+          "nome": "Cadeira extensora",
+          "series": 2,
+          "reps": "10–15"
+        },
+        {
+          "nome": "Panturrilha em pé",
+          "series": 2,
+          "reps": "10–15"
+        }
+      ]
+    },
+    {
+      "aba": "QUA",
+      "titulo": "Quarta — Descanso",
+      "subtitulo": "Recuperação",
+      "descanso": true,
+      "exercicios": []
+    }
+  ]
+}

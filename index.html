@@ -1042,6 +1042,7 @@ function renderTreino(){
 
 function exerciseRow(e,i,draft){
   const info=find(e[0]);
+  const draftUnavailable=(draft._unavailable||{})[i]||null;
   const pg=progressionFor(e[0],e[1]);
   const hasGoal=!!(pg&&pg.last);
   const kgPh=hasGoal&&pg.targetKg?fmtLoad(pg.targetKg):esc(settings.unit);
@@ -1068,6 +1069,7 @@ function exerciseRow(e,i,draft){
       </div>
       <button type="button" class="ghost guide-btn" data-action="guide" data-name="${esc(e[0])}">Ver execução</button>
     </div>
+    ${draftUnavailable?`<div class="badge" style="margin:8px 0;color:var(--danger)">⚠ Não realizado: ${esc(draftUnavailable.reason)}</div>`:""}
     ${goal}
     <div class="set-labels"><span>Nº</span><span>Carga</span><span>Reps</span><span>RIR</span><span></span></div>
     ${rows}
@@ -1075,13 +1077,15 @@ function exerciseRow(e,i,draft){
       <button type="button" data-action="add-set" data-idx="${i}">+ Série</button>
       <button type="button" data-action="remove-set" data-idx="${i}">− Série</button>
       ${isBarbell(e[0])?`<button type="button" data-action="plates" data-idx="${i}">🧮 Anilhas</button>`:""}
+      <button type="button" data-action="dane-se" data-idx="${i}" style="border-color:var(--danger);color:var(--danger)">${draftUnavailable?"↩ Desfazer":"Dane-se"}</button>
     </div>
   </div>`;
 }
 
 function syncDraft(){
   const d=curDay();if(!d||d.rest)return;
-  const draft={};
+  const previous=JSON.parse(localStorage.getItem(draftKey())||"{}");
+  const draft={_unavailable:previous._unavailable||{}};
   document.querySelectorAll("#list .ex").forEach((card,i)=>{
     draft[i]=[...card.querySelectorAll(".set")].map(r=>({
       kg:r.querySelector(".kg").value,reps:r.querySelector(".reps").value,
@@ -1113,6 +1117,23 @@ function changeSeries(i,n){
   if(z===e[2])return;
   e[2]=z;savePlan();renderTreino();
 }
+function markUnavailable(i){
+  const d=curDay();if(!d||!d.ex[i])return;
+  syncDraft();
+  const draft=JSON.parse(localStorage.getItem(draftKey())||"{}");
+  draft._unavailable=draft._unavailable||{};
+  if(draft._unavailable[i]){
+    delete draft._unavailable[i];
+    localStorage.setItem(draftKey(),JSON.stringify(draft));
+    renderTreino();toast("Registro de indisponibilidade desfeito.");return;
+  }
+  const reason=(prompt(`Por que não conseguiu fazer ${d.ex[i][0]}?`, "Equipamento ocupado; sem alternativa disponível")||"").trim();
+  if(!reason)return;
+  draft._unavailable[i]={exercise:d.ex[i][0],reason};
+  localStorage.setItem(draftKey(),JSON.stringify(draft));
+  touchWorkout();renderTreino();toast("Exercício registrado como não realizado.");
+}
+
 function finishSession(){
   const d=curDay();
   if(!d||d.rest){toast("Hoje é dia de descanso.");return;}
@@ -1122,7 +1143,8 @@ function finishSession(){
   d.ex.forEach((e,i)=>(draft[i]||[]).forEach((v,s)=>{
     if(v.done||v.kg||v.reps)rowsOut.push({exercise:e[0],set:s+1,kg:+v.kg||0,reps:+v.reps||0,rir:v.rir===""?+settings.rir:(+v.rir||0)});
   }));
-  if(!rowsOut.length){toast("Preencha ou marque ao menos uma série.");return;}
+  const unavailable=Object.values(draft._unavailable||{});
+  if(!rowsOut.length&&!unavailable.length){toast("Preencha uma série ou registre um exercício não realizado.");return;}
   const goals={};
   d.ex.forEach(e=>{
     const pg=progressionFor(e[0],e[1]);
@@ -1134,7 +1156,7 @@ function finishSession(){
     const now=Date.now(),end=(now-(sess.last||sess.start)<=30*60e3)?now:sess.last;
     durationSec=Math.max(0,Math.round((end-sess.start)/1000));startedAt=sess.start;
   }
-  logs.unshift({date:new Date().toISOString(),dayId:d.id,name:d.name,rows:rowsOut,gym:currentGym||null,rating:currentRating||0,durationSec,startedAt,goals});
+  logs.unshift({date:new Date().toISOString(),dayId:d.id,name:d.name,rows:rowsOut,unavailableExercises:unavailable,gym:currentGym||null,rating:currentRating||0,durationSec,startedAt,goals});
   localStorage.removeItem(draftKey());
   localStorage.removeItem(warmKey());
   localStorage.removeItem(sessKey());
@@ -2305,7 +2327,8 @@ function renderHistory(){
         ${l.durationSec!=null?`<span class="badge">⏱ ${fmtDuration(l.durationSec)}</span>`:""}
         <button type="button" class="ghost" style="font-size:12px;padding:5px 10px" data-action="summary" data-date="${esc(l.date)}">📊 Ver resumo</button>
       </div>
-      <p class="muted" style="margin:0 0 8px">${l.rows.length} séries registradas</p>
+      <p class="muted" style="margin:0 0 8px">${l.rows.length} séries registradas${l.unavailableExercises?.length?` • ${l.unavailableExercises.length} exercício(s) não realizado(s)`:""}</p>
+      ${l.unavailableExercises?.length?`<div class="log-rows" style="margin-bottom:8px">${l.unavailableExercises.map(x=>`<div class="log-row"><span>⚠ ${esc(x.exercise)}</span><span class="muted">${esc(x.reason)}</span></div>`).join("")}</div>`:""}
       <div class="log-rows">${l.rows.map(r=>`<div class="log-row"><span>${esc(r.exercise)}</span><span>${r.kg||"—"} ${esc(settings.unit)} × ${r.reps||"—"} <span class="muted">RIR ${r.rir}</span></span></div>`).join("")}</div>
     </div>`;
   }).join(""):emptyState("📓","Nenhum treino salvo ainda","Finalize uma sessão em Treino para começar seu histórico.");
@@ -2733,6 +2756,7 @@ $("list").addEventListener("click",e=>{
   else if(action==="guide")guide(t.dataset.name);
   else if(action==="use-goal")useGoal(idx);
   else if(action==="plates")openPlatesFor(idx);
+  else if(action==="dane-se")markUnavailable(idx);
 });
 $("list").addEventListener("input",()=>{touchWorkout();syncDraft();});
 $("ratingStars").addEventListener("click",e=>{

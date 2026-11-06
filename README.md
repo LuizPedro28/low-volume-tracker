@@ -396,3 +396,7 @@ organizado por área, para quando quiser continuar evoluindo o app:
   em JSON manualmente, já que o app não tem conta nem servidor próprio)
 - Lembrete/notificação programada para o dia de treino
 - Suporte a mais de um perfil no mesmo aparelho
+
+
+## Registro de exercício não realizado ("Dane-se")
+Na tela de treino, cada exercício possui o botão **Dane-se**. Ele permite registrar um exercício que não pôde ser realizado (por exemplo, equipamento ocupado e nenhuma alternativa disponível), com um motivo opcional/editável no momento do registro. O exercício não é contado como concluído nem entra nos cálculos de carga/volume. Ao finalizar a sessão, a ocorrência é salva no histórico vinculada àquele treino e àquele dia. É possível desfazer o registro antes de finalizar.
