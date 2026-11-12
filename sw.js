@@ -1,6 +1,6 @@
 // Bump this version string whenever you deploy new content,
 // so users' browsers pick up the update instead of the old cache.
-const CACHE_NAME = "lvt-cache-v14";
+const CACHE_NAME = "lvt-cache-v16";
 
 const CORE_ASSETS = [
   "./",
@@ -37,18 +37,19 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
+  const isAppShell = event.request.mode === "navigate" || new URL(event.request.url).pathname.endsWith("/index.html");
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((response) => {
-          if (response && response.ok && event.request.url.startsWith(self.location.origin)) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
+    (isAppShell ? fetch(event.request).then((response) => {
+      if (response && response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
+      return response;
+    }).catch(() => caches.match(event.request)) : caches.match(event.request).then((cached) => {
+      const network = fetch(event.request).then((response) => {
+        if (response && response.ok && event.request.url.startsWith(self.location.origin)) {
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
+        }
+        return response;
+      }).catch(() => cached);
       return cached || network;
-    })
+    }))
   );
 });

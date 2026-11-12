@@ -447,7 +447,7 @@ body:has(#summaryModal.open) .timer-widget{display:none}
     <details class="warm-details">
       <summary>Como o app decide o aquecimento</summary>
       <p class="muted">Aquecimento completo (3 séries progressivas) no 1º exercício de cada região do corpo no dia; os demais que usam músculos já aquecidos pedem só <b>feeder</b>: 1 série leve (~65% × 5), ou 2 séries nos exercícios pesados (até 8 reps). As cargas são porcentagens da sua carga de trabalho, que vem de: valor que você ajustar aqui, depois a carga digitada hoje, depois sua última sessão (priorizando a academia atual). Arredondado de 2,5 em 2,5 kg (5 em 5 lb).</p>
-      <p class="muted"><b>Meta de hoje (dupla progressão):</b> o app olha sua última sessão do exercício (na academia atual, se houver). Se você bateu o topo da faixa de reps em todas as séries do topo — ou sobrou muita reserva (RIR médio ≥ 3) — a meta é subir a carga (~3%, em passos de 2,5 kg / 5 lb) com as reps esperadas nela. Se ficou no meio da faixa: mesma carga e +1 rep. Se ficou abaixo do mínimo: mantém a carga e busca o mínimo de reps. Exercícios sem histórico não têm meta.</p>
+      <p class="muted"><b>Meta de hoje (dupla progressão):</b> o app olha sua última sessão do exercício (na academia atual, se houver). A progressão usa a faixa efetiva configurada para cada exercício (faixa específica > faixa geral > faixa original). Se você bateu o topo dessa faixa em todas as séries da carga mais alta — ou sobrou muita reserva (RIR médio ≥ 3) — a meta é subir a carga (~3%, em passos de 2,5 kg / 5 lb), mantendo a meta de reps dentro da faixa. Se ficou no meio: mesma carga e +1 rep, sem ultrapassar o máximo. Se ficou abaixo do mínimo: mantém a carga e busca o mínimo configurado. Exercícios sem histórico não têm meta.</p>
       <p class="muted">Feeder: 1–3 séries leves, sem fadiga. PAP/PAPE é opcional e não deve prejudicar a série efetiva. Séries efetivas: normalmente RIR 0–2.</p>
     </details>
   </div>
@@ -924,24 +924,65 @@ const THEMES={
 const $=id=>document.getElementById(id);
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function find(n){return LIB.find(x=>x[0]===n)||[n,"Geral","6–12","Execute com controle e amplitude confortável."]; }
-function effectiveRepRange(name,stored){return (settings.exerciseRepRanges&&settings.exerciseRepRanges[name])||settings.defaultRepRange||stored||find(name)[2];}
+function effectiveRepRange(name,stored){
+  const specific=String((settings.exerciseRepRanges||{})[name]||"").trim();
+  const general=String(settings.defaultRepRange||"").trim();
+  return specific||general||stored||find(name)[2];
+}
 function genId(){return "d"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function emptyState(icon,title,text){return `<div class="card empty-state"><div class="empty-icon">${icon}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p></div>`;}
 
-function loadPlan(){
-  let raw=localStorage.getItem("lvt_plan_v2");
-  if(raw){
-    try{let p=JSON.parse(raw);if(Array.isArray(p)&&p.length)return p;}catch(e){}
+function normalizeStoredExercise(item){
+  if(Array.isArray(item)){
+    const name=String(item[0]??item.name??item.nome??"").trim();
+    if(!name)return null;
+    const reps=String(item[1]??item.reps??item.faixa??find(name)[2]);
+    const sets=Math.max(1,Math.min(8,parseInt(item[2]??item.series??item.sets,10)||2));
+    const note=String(item[3]??item.note??item.observacao??"");
+    return [name,reps,sets,note];
   }
-  let oldRaw=localStorage.getItem("lvt_plan");
-  if(oldRaw){
+  if(typeof item==="string")return [item,find(item)[2],2,""];
+  if(!item||typeof item!=="object")return null;
+  const name=String(item.nome??item.name??item.exercicio??item.exercise??item.titulo??"").trim();
+  if(!name)return null;
+  const reps=String(item.reps??item.repeticoes??item.faixa??item.repRange??item.reprange??find(name)[2]);
+  const sets=Math.max(1,Math.min(8,parseInt(item.series??item.sets??item.quantidadeSeries,10)||2));
+  const note=String(item.observacao??item.observacoes??item.note??item.notes??"");
+  return [name,reps,sets,note];
+}
+function normalizeStoredDay(day,key,index){
+  if(!day||typeof day!=="object")return null;
+  const id=String(day.id??day.key??key??`d${index+1}`);
+  const label=String(day.label??day.aba??day.tab??day.sigla??key??`D${index+1}`);
+  const name=String(day.name??day.nome??day.titulo??day.title??label);
+  const sub=String(day.sub??day.subtitulo??day.subtitle??day.descricao??day.foco??"");
+  let raw=day.ex??day.exercicios??day.exercises??day.lista??day.items??day.workout??[];
+  // Alguns formatos antigos guardavam os exercícios dentro de um objeto indexado.
+  if(raw&&typeof raw==="object"&&!Array.isArray(raw))raw=Object.values(raw);
+  const ex=Array.isArray(raw)?raw.map(normalizeStoredExercise).filter(Boolean):[];
+  const explicitRest=day.rest??day.descanso??day.folga;
+  const rest=ex.length?false:(explicitRest===true||explicitRest===1||String(explicitRest).toLowerCase()==="true");
+  return {id,label,name,sub,rest,ex};
+}
+function loadPlan(){
+  // Migra planos de versões anteriores sem descartar exercícios que usem outra chave/formato.
+  const keys=["lvt_plan_v2","lvt_plan_v3","lvt_plan","lvt_workout_plan","lvt_training_plan"];
+  for(const key of keys){
+    const raw=localStorage.getItem(key);if(!raw)continue;
     try{
-      let old=JSON.parse(oldRaw);
-      let arr=Object.entries(old).map(([key,v])=>({
-        id:key,label:key,name:v.name,sub:v.sub,ex:v.ex||[],rest:!v.ex||v.ex.length===0
-      }));
-      if(arr.length)return arr;
-    }catch(e){}
+      const parsed=JSON.parse(raw);
+      let source=parsed;
+      if(!Array.isArray(source)&&source&&typeof source==="object"){
+        source=source.dias??source.days??source.plan??source.plano??source.treinos??source.workouts??source;
+      }
+      const entries=Array.isArray(source)?source:Object.entries(source||{}).map(([k,v])=>({...v,id:v?.id??k,label:v?.label??k}));
+      const normalized=entries.map((d,i)=>normalizeStoredDay(d,null,i)).filter(Boolean);
+      if(normalized.length){
+        // Evita tratar como descanso um dia que contenha exercícios, mesmo em planos legados.
+        normalized.forEach(d=>{if(d.ex.length)d.rest=false;});
+        return normalized;
+      }
+    }catch(e){console.warn("Falha ao migrar plano salvo",key,e);}
   }
   return DEFAULT_DAYS.map(d=>({...d,ex:d.ex.map(e=>[...e])}));
 }
@@ -949,6 +990,7 @@ function loadPlan(){
 let plan=loadPlan();
 let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]");
 let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,defaultRepRange:"",exerciseRepRanges:{},timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5",gyms:[],warmTimer:true,barKg:null,plates:[]},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
+settings.exerciseRepRanges=settings.exerciseRepRanges&&typeof settings.exerciseRepRanges==="object"?settings.exerciseRepRanges:{};
 let currentGym=localStorage.getItem("lvt_current_gym")||"";
 let currentRating=0;
 if(settings.aiApiKey&&!settings.aiKeyAnthropic){settings.aiKeyAnthropic=settings.aiApiKey;settings.aiProvider="anthropic";}
@@ -1038,21 +1080,32 @@ function renderTreino(){
   renderGymSelect();
   renderRatingStars();
   const d=curDay();
-  if(!d){$("title").textContent="";$("sub").textContent="";$("warmupCard").style.display="none";$("list").innerHTML=emptyState("＋","Nenhum dia cadastrado","Use \"Editar dias\" para criar o primeiro dia de treino.");return;}
-  $("title").textContent=d.name;
+  if(!d){
+    $("title").textContent="";$("sub").textContent="";$("warmupCard").style.display="none";
+    ["finishBtn","editExBtn","addExBtn","focusBtn","gymRow","ratingRow"].forEach(id=>$(id).style.display="none");
+    $("restBadge").style.display="none";
+    $("list").innerHTML=emptyState("＋","Nenhum dia cadastrado","Use \"Editar dias\" para criar o primeiro dia de treino.");
+    return;
+  }
+  // Normaliza planos antigos/importados e evita esconder exercícios existentes
+  // quando um dia ficou marcado como descanso por engano.
+  if(!Array.isArray(d.ex))d.ex=[];
+  const isRestDay=!!d.rest && d.ex.length===0;
+  $("title").textContent=d.name||"Treino";
   $("sub").textContent=d.sub||"";
-  $("restBadge").style.display=d.rest?"inline-flex":"none";
-  const lastTxt=d.rest?"":lastSessionText(d);
+  $("restBadge").style.display=isRestDay?"inline-flex":"none";
+  const lastTxt=isRestDay?"":lastSessionText(d);
   $("lastSession").textContent=lastTxt;
   $("lastSession").style.display=lastTxt?"block":"none";
-  renderWarmup(d);
-  $("finishBtn").style.display=d.rest?"none":"inline-flex";
-  $("editExBtn").style.display=d.rest?"none":"inline-flex";
-  $("addExBtn").style.display=d.rest?"none":"inline-flex";
-  $("focusBtn").style.display=(d.rest||!d.ex.length)?"none":"inline-flex";
-  $("gymRow").style.display=d.rest?"none":"flex";
-  $("ratingRow").style.display=d.rest?"none":"flex";
-  if(d.rest){
+  $("warmupCard").style.display=isRestDay?"none":"";
+  if(!isRestDay)renderWarmup(d);
+  $("finishBtn").style.display=isRestDay?"none":"inline-flex";
+  $("editExBtn").style.display=isRestDay?"none":"inline-flex";
+  $("addExBtn").style.display=isRestDay?"none":"inline-flex";
+  $("focusBtn").style.display=(isRestDay||!d.ex.length)?"none":"inline-flex";
+  $("gymRow").style.display=isRestDay?"none":"flex";
+  $("ratingRow").style.display=isRestDay?"none":"flex";
+  if(isRestDay){
     $("list").innerHTML=emptyState("🌙","Dia de descanso","Recupere-se: priorize sono, alimentação e, se quiser, uma caminhada leve.");
     return;
   }
@@ -1063,7 +1116,6 @@ function renderTreino(){
   const draft=JSON.parse(localStorage.getItem(draftKey())||"{}");
   $("list").innerHTML=d.ex.map((e,i)=>exerciseRow(e,i,draft)).join("");
 }
-
 function exerciseRow(e,i,draft){
   const info=find(e[0]);
   const draftUnavailable=(draft._unavailable||{})[i]||null;

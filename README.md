@@ -414,3 +414,12 @@ Na tela de treino, cada exercício possui o botão **Dane-se**. Ele permite regi
 - **Observações por exercício**: registre detalhes como regulagem da máquina, pegada, posição do banco ou execução. A observação aparece no card durante o treino.
 - **Variação independente**: transforme o exercício atual em uma variação com nome próprio (por exemplo, "Tríceps na polia — polia pesada"). Como o nome é independente, histórico, gráfico e progressão não são comparados com o exercício convencional.
 - **Reordenação durante o treino**: use as setas ↑ e ↓ em cada card para mover o exercício rapidamente. Séries já preenchidas e marcações de indisponibilidade acompanham o exercício ao mudar de posição.
+
+
+## Correção de compatibilidade (v16)
+
+- Migração automática de planos antigos com dias e exercícios armazenados nos campos `ex`, `exercicios`, `exercises`, `lista` ou `items`.
+- Normalização de exercícios salvos como arrays, textos ou objetos, preservando nome, faixa, séries e observações.
+- Um dia que contenha exercícios não será marcado como descanso, mesmo que o sinalizador antigo esteja inconsistente.
+- A progressão de repetições respeita a prioridade: faixa específica do exercício, faixa geral das configurações e, por último, faixa original.
+- Metas de repetições permanecem dentro dos limites mínimo e máximo configurados.
