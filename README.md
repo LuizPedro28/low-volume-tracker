@@ -1,3 +1,10 @@
+## Atualização visual e faixas de repetição
+
+- 10 temas completos, com paletas próprias para fundo, cartões, textos e destaques.
+- Faixa geral de repetições em Configurações; deixe em branco para manter as faixas originais do plano.
+- Faixa específica por exercício em Treino → Editar exercícios. A faixa específica tem prioridade sobre a geral.
+- As faixas são aplicadas às metas e à progressão automática.
+
 # Low Volume Tracker
 
 Tracker de musculação feito com HTML, CSS e JavaScript puro — agora também é
@@ -400,3 +407,10 @@ organizado por área, para quando quiser continuar evoluindo o app:
 
 ## Registro de exercício não realizado ("Dane-se")
 Na tela de treino, cada exercício possui o botão **Dane-se**. Ele permite registrar um exercício que não pôde ser realizado (por exemplo, equipamento ocupado e nenhuma alternativa disponível), com um motivo opcional/editável no momento do registro. O exercício não é contado como concluído nem entra nos cálculos de carga/volume. Ao finalizar a sessão, a ocorrência é salva no histórico vinculada àquele treino e àquele dia. É possível desfazer o registro antes de finalizar.
+
+
+## Novidades desta versão
+
+- **Observações por exercício**: registre detalhes como regulagem da máquina, pegada, posição do banco ou execução. A observação aparece no card durante o treino.
+- **Variação independente**: transforme o exercício atual em uma variação com nome próprio (por exemplo, "Tríceps na polia — polia pesada"). Como o nome é independente, histórico, gráfico e progressão não são comparados com o exercício convencional.
+- **Reordenação durante o treino**: use as setas ↑ e ↓ em cada card para mover o exercício rapidamente. Séries já preenchidas e marcações de indisponibilidade acompanham o exercício ao mudar de posição.

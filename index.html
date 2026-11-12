@@ -291,18 +291,26 @@ body:has(#summaryModal.open) .timer-widget{display:none}
 .grid-2 input:focus,.grid-2 select:focus,#rir:focus{border-color:var(--accent)}
 .field-input{width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:10px;font-size:14px;outline:none;margin-top:2px}
 .field-input:focus{border-color:var(--accent)}
-.theme-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:12px}
 .theme-swatch{
-  min-height:56px;border-radius:10px;border:2px solid var(--line);cursor:pointer;position:relative;overflow:hidden;
-  display:flex;align-items:flex-end;justify-content:flex-start;padding:6px 8px;
-  font-family:var(--font-display);font-size:10px;letter-spacing:.03em;color:#1a1408;text-transform:uppercase
+  min-height:76px;border-radius:12px;border:2px solid var(--line);cursor:pointer;position:relative;overflow:hidden;
+  display:flex;align-items:flex-end;justify-content:flex-start;padding:8px 9px;
+  font-family:var(--font-display);font-size:11px;letter-spacing:.04em;color:var(--swatch-ink,#fff);text-transform:uppercase;
+  box-shadow:inset 0 -28px 30px rgba(0,0,0,.18);text-shadow:0 1px 3px rgba(0,0,0,.45)
 }
-.theme-swatch.active{border-color:var(--text);box-shadow:0 0 0 2px var(--accent)}
-.swatch-latao{background:radial-gradient(circle at 30% 25%,#f4d27e,#c98f22 72%)}
-.swatch-ferro{background:radial-gradient(circle at 30% 25%,#a3c3d8,#4f6b80 72%)}
-.swatch-ferrugem{background:radial-gradient(circle at 30% 25%,#e6947c,#9c3f2c 72%)}
-.swatch-oliva{background:radial-gradient(circle at 30% 25%,#bccb96,#5f7145 72%)}
-.swatch-grafite{background:radial-gradient(circle at 30% 25%,#d3d0bd,#726f5c 72%)}
+.theme-swatch.active{border-color:var(--text);box-shadow:0 0 0 2px var(--accent),inset 0 -28px 30px rgba(0,0,0,.18)}
+.theme-swatch:before{content:"";position:absolute;inset:8px 8px auto auto;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.35)}
+.theme-swatch span{position:relative;z-index:1}
+.swatch-latao{background:linear-gradient(135deg,#f4d27e,#c98f22 72%)}
+.swatch-ferro{background:linear-gradient(135deg,#a3c3d8,#304b68 72%)}
+.swatch-ferrugem{background:linear-gradient(135deg,#e6947c,#812f28 72%)}
+.swatch-oliva{background:linear-gradient(135deg,#bccb96,#465b32 72%)}
+.swatch-grafite{background:linear-gradient(135deg,#d3d0bd,#55534b 72%)}
+.swatch-oceano{background:linear-gradient(135deg,#69d4d0,#07566a 72%)}
+.swatch-violeta{background:linear-gradient(135deg,#c4a2ff,#5735a5 72%)}
+.swatch-rose{background:linear-gradient(135deg,#ffc0d4,#a83e70 72%)}
+.swatch-neve{background:linear-gradient(135deg,#ffffff,#8bb8d8 72%)}
+.swatch-carbono{background:linear-gradient(135deg,#8d969e,#242a30 72%)}
 .info-list{display:grid;gap:8px;margin-top:10px}
 .info-item{padding:11px 12px;background:var(--surface-2);border-radius:11px;border:1px solid var(--line);font-size:13px}
 .section-title{margin:16px 0 8px;font-family:var(--font-display);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
@@ -313,8 +321,8 @@ body:has(#summaryModal.open) .timer-widget{display:none}
 .modalbox{max-width:720px;margin:26px auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
 .edit-row{border-top:1px solid var(--line);padding:12px 0}
 .edit-row:first-child{border-top:none}
-.edit-grid{display:grid;grid-template-columns:1fr 72px 40px;gap:6px;margin-top:6px}
-.edit-grid select,.edit-grid input{background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px}
+.edit-grid{display:grid;grid-template-columns:minmax(130px,1fr) 62px 112px 40px;gap:6px;margin-top:6px}
+.edit-grid select,.edit-grid input{min-width:0;width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;font-size:12px}
 .ex-pick-btn{background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px;text-align:left;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .picker-list{max-height:52vh;overflow-y:auto;display:grid;gap:6px}
 .picker-item{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--surface-2);border-radius:10px}
@@ -373,6 +381,7 @@ body:has(#summaryModal.open) .timer-widget{display:none}
   .set,.set-labels{grid-template-columns:22px 1fr 1fr 52px 36px}
   .grid-2{grid-template-columns:1fr}
   .day-edit-fields{grid-template-columns:1fr}
+  .edit-grid{grid-template-columns:minmax(0,1fr) 54px 96px 36px}
 }
 </style>
 </head>
@@ -501,13 +510,18 @@ body:has(#summaryModal.open) .timer-widget{display:none}
   </div>
   <div class="card">
     <h2>Aparência</h2>
-    <p class="muted">Escolha uma cor de destaque e o modo de exibição.</p>
+    <p class="muted">Temas completos: cada opção muda o fundo, os cartões, os textos e as cores de destaque.</p>
     <div class="theme-grid">
-      <button type="button" class="theme-swatch swatch-latao" data-theme="latao" onclick="setTheme('latao')">Latão</button>
-      <button type="button" class="theme-swatch swatch-ferro" data-theme="ferro" onclick="setTheme('ferro')">Ferro</button>
-      <button type="button" class="theme-swatch swatch-ferrugem" data-theme="ferrugem" onclick="setTheme('ferrugem')">Ferrugem</button>
-      <button type="button" class="theme-swatch swatch-oliva" data-theme="oliva" onclick="setTheme('oliva')">Oliva</button>
-      <button type="button" class="theme-swatch swatch-grafite" data-theme="grafite" onclick="setTheme('grafite')">Grafite</button>
+      <button type="button" class="theme-swatch swatch-latao" data-theme="latao" onclick="setTheme('latao')"><span>Latão</span></button>
+      <button type="button" class="theme-swatch swatch-ferro" data-theme="ferro" onclick="setTheme('ferro')"><span>Ferro azul</span></button>
+      <button type="button" class="theme-swatch swatch-ferrugem" data-theme="ferrugem" onclick="setTheme('ferrugem')"><span>Ferrugem</span></button>
+      <button type="button" class="theme-swatch swatch-oliva" data-theme="oliva" onclick="setTheme('oliva')"><span>Oliva</span></button>
+      <button type="button" class="theme-swatch swatch-grafite" data-theme="grafite" onclick="setTheme('grafite')"><span>Grafite</span></button>
+      <button type="button" class="theme-swatch swatch-oceano" data-theme="oceano" onclick="setTheme('oceano')"><span>Oceano</span></button>
+      <button type="button" class="theme-swatch swatch-violeta" data-theme="violeta" onclick="setTheme('violeta')"><span>Violeta</span></button>
+      <button type="button" class="theme-swatch swatch-rose" data-theme="rose" onclick="setTheme('rose')"><span>Rosa</span></button>
+      <button type="button" class="theme-swatch swatch-neve" data-theme="neve" onclick="setTheme('neve')"><span>Neve</span></button>
+      <button type="button" class="theme-swatch swatch-carbono" data-theme="carbono" onclick="setTheme('carbono')"><span>Carbono</span></button>
     </div>
     <div class="actions"><button type="button" onclick="toggleLight()">☀ Alternar claro/escuro</button></div>
   </div>
@@ -517,7 +531,11 @@ body:has(#summaryModal.open) .timer-widget{display:none}
       <label>Nome<input id="name" placeholder="Ex.: Luiz"></label>
       <label>Unidade<select id="unit"><option value="kg">kg</option><option value="lb">lb</option></select></label>
     </div>
-    <label class="block">RIR padrão<input id="rir" type="number" min="0" max="5"></label>
+    <div class="grid-2 block">
+      <label>Faixa geral de repetições<input id="defaultRepRange" placeholder="Ex.: 8–12" autocomplete="off"></label>
+      <label>RIR padrão<input id="rir" type="number" min="0" max="5"></label>
+    </div>
+    <p class="muted tiny" style="margin-top:6px">A faixa geral vale para todos os exercícios sem uma faixa específica. Deixe em branco para manter as faixas originais do plano.</p>
     <div class="actions">
       <button type="button" class="primary" onclick="saveSettings()">💾 Salvar preferências</button>
       <button type="button" class="danger" onclick="resetAll()">🗑 Apagar todos os dados</button>
@@ -626,7 +644,7 @@ body:has(#summaryModal.open) .timer-widget{display:none}
 <div class="modal" id="editModal">
   <div class="modalbox">
     <div class="row between"><h2>Editar exercícios</h2><button type="button" class="icon-btn" onclick="closeM('editModal')" aria-label="Fechar">✕</button></div>
-    <p class="muted">Troque exercícios e ajuste o número de séries (máx. 8 por exercício).</p>
+    <p class="muted">Troque exercícios, ajuste séries e defina uma faixa própria para cada exercício. Se deixar a faixa específica vazia, será usada a faixa geral das configurações (ou a faixa original do exercício).</p>
     <div id="editList"></div>
     <button type="button" class="ghost full" onclick="openPicker('new-editor')">+ Adicionar exercício</button>
     <button type="button" class="primary full" onclick="saveExerciseEditor()">Salvar alterações</button>
@@ -891,16 +909,22 @@ const DEFAULT_DAYS=[
 ];
 
 const THEMES={
-  latao:["#e3ab2f","#c98f22"],
-  ferro:["#6b8ba4","#4f6b80"],
-  ferrugem:["#c1573f","#9c3f2c"],
-  oliva:["#7a8f5a","#5f7145"],
-  grafite:["#9c9884","#726f5c"]
+  latao:{a:"#e3ab2f",a2:"#c98f22",bg:"#14140f",s:"#1b1b14",s2:"#232319",s3:"#2b2b1e",t:"#f4f2e6",m:"#a19c86",l:"#37362a"},
+  ferro:{a:"#8bb8d8",a2:"#4f7898",bg:"#101820",s:"#172431",s2:"#203242",s3:"#2a4052",t:"#eaf3f8",m:"#9aafbd",l:"#344b5c"},
+  ferrugem:{a:"#e0785e",a2:"#a83e31",bg:"#1b100f",s:"#281816",s2:"#35201d",s3:"#472923",t:"#fff0e9",m:"#c49b90",l:"#57352e"},
+  oliva:{a:"#a6bd75",a2:"#637d43",bg:"#14190f",s:"#1d2517",s2:"#293321",s3:"#35412a",t:"#f0f5e7",m:"#a7b296",l:"#414e34"},
+  grafite:{a:"#c2c7ce",a2:"#858e98",bg:"#151719",s:"#202326",s2:"#2b3035",s3:"#383e44",t:"#f1f3f5",m:"#a5abb1",l:"#454b51"},
+  oceano:{a:"#55d6d0",a2:"#168b9a",bg:"#07191e",s:"#0d252c",s2:"#12343d",s3:"#19444e",t:"#e4fbfa",m:"#8bb9bd",l:"#24515a"},
+  violeta:{a:"#bd9aff",a2:"#8055d6",bg:"#160f22",s:"#211832",s2:"#2d2144",s3:"#3b2b58",t:"#f5efff",m:"#b5a6ca",l:"#4a3864"},
+  rose:{a:"#ff9fc4",a2:"#c65383",bg:"#211019",s:"#301724",s2:"#402033",s3:"#512a40",t:"#fff0f6",m:"#c9a0b1",l:"#61364e"},
+  neve:{a:"#2678ad",a2:"#14537e",bg:"#e9f2f8",s:"#f8fcff",s2:"#e3eef6",s3:"#d1e2ee",t:"#172b3a",m:"#597181",l:"#bfd2df"},
+  carbono:{a:"#e0e5e9",a2:"#89959f",bg:"#090b0d",s:"#15191d",s2:"#20262b",s3:"#2b333a",t:"#f4f7f9",m:"#929da6",l:"#39434b"}
 };
 
 const $=id=>document.getElementById(id);
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function find(n){return LIB.find(x=>x[0]===n)||[n,"Geral","6–12","Execute com controle e amplitude confortável."];}
+function find(n){return LIB.find(x=>x[0]===n)||[n,"Geral","6–12","Execute com controle e amplitude confortável."]; }
+function effectiveRepRange(name,stored){return (settings.exerciseRepRanges&&settings.exerciseRepRanges[name])||settings.defaultRepRange||stored||find(name)[2];}
 function genId(){return "d"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function emptyState(icon,title,text){return `<div class="card empty-state"><div class="empty-icon">${icon}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p></div>`;}
 
@@ -924,7 +948,7 @@ function loadPlan(){
 
 let plan=loadPlan();
 let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]");
-let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5",gyms:[],warmTimer:true,barKg:null,plates:[]},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
+let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,defaultRepRange:"",exerciseRepRanges:{},timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5",gyms:[],warmTimer:true,barKg:null,plates:[]},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
 let currentGym=localStorage.getItem("lvt_current_gym")||"";
 let currentRating=0;
 if(settings.aiApiKey&&!settings.aiKeyAnthropic){settings.aiKeyAnthropic=settings.aiApiKey;settings.aiProvider="anthropic";}
@@ -1043,10 +1067,11 @@ function renderTreino(){
 function exerciseRow(e,i,draft){
   const info=find(e[0]);
   const draftUnavailable=(draft._unavailable||{})[i]||null;
-  const pg=progressionFor(e[0],e[1]);
+  const exRange=effectiveRepRange(e[0],e[1]);
+  const pg=progressionFor(e[0],exRange);
   const hasGoal=!!(pg&&pg.last);
   const kgPh=hasGoal&&pg.targetKg?fmtLoad(pg.targetKg):esc(settings.unit);
-  const repsPh=hasGoal?String(pg.targetReps):esc(e[1]);
+  const repsPh=hasGoal?String(pg.targetReps):esc(exRange);
   let goal="";
   if(hasGoal)goal=`<div class="goal-box"><div class="muted tiny">${esc(lastText(pg))}</div><div class="goal-line">🎯 Hoje: <b>${esc(goalText(pg))}</b></div><button type="button" class="ghost goal-btn" data-action="use-goal" data-idx="${i}">Usar meta</button></div>`;
   else if(pg&&pg.first)goal=`<div class="goal-box"><div class="muted tiny">🎯 Primeira vez por aqui: ache uma carga que feche ${rangeText(pg.rr)} reps com 1–2 de reserva.</div></div>`;
@@ -1065,7 +1090,8 @@ function exerciseRow(e,i,draft){
     <div class="exercise-top">
       <div>
         <div class="exercise-name">${esc(e[0])}</div>
-        <span class="badge">${esc(info[1])} • ${esc(e[1])}</span>${warmKinds[e[0]]?`<span class="badge warm-badge">${warmKinds[e[0]]==="warm"?"🔥 Aquecer":"Feeder"}</span>`:""}
+        <span class="badge">${esc(info[1])} • ${esc(exRange)}</span>
+        ${e[3]?`<div class="muted tiny" style="margin-top:5px">📝 ${esc(e[3])}</div>`:""}${warmKinds[e[0]]?`<span class="badge warm-badge">${warmKinds[e[0]]==="warm"?"🔥 Aquecer":"Feeder"}</span>`:""}
       </div>
       <button type="button" class="ghost guide-btn" data-action="guide" data-name="${esc(e[0])}">Ver execução</button>
     </div>
@@ -1074,12 +1100,51 @@ function exerciseRow(e,i,draft){
     <div class="set-labels"><span>Nº</span><span>Carga</span><span>Reps</span><span>RIR</span><span></span></div>
     ${rows}
     <div class="actions">
+      <button type="button" data-action="move-ex-up" data-idx="${i}" ${i===0?"disabled":""} aria-label="Mover exercício para cima">↑</button>
+      <button type="button" data-action="move-ex-down" data-idx="${i}" ${i===d.ex.length-1?"disabled":""} aria-label="Mover exercício para baixo">↓</button>
+      <button type="button" data-action="exercise-note" data-idx="${i}">📝 Observação</button>
+      <button type="button" data-action="exercise-variant" data-idx="${i}">↗ Variação independente</button>
       <button type="button" data-action="add-set" data-idx="${i}">+ Série</button>
       <button type="button" data-action="remove-set" data-idx="${i}">− Série</button>
       ${isBarbell(e[0])?`<button type="button" data-action="plates" data-idx="${i}">🧮 Anilhas</button>`:""}
       <button type="button" data-action="dane-se" data-idx="${i}" style="border-color:var(--danger);color:var(--danger)">${draftUnavailable?"↩ Desfazer":"Dane-se"}</button>
     </div>
   </div>`;
+}
+
+function moveExerciseInWorkout(i,dir){
+  const d=curDay();if(!d||!d.ex[i])return;
+  syncDraft();
+  const j=i+dir;if(j<0||j>=d.ex.length)return;
+  const draft=JSON.parse(localStorage.getItem(draftKey())||"{}");
+  [d.ex[i],d.ex[j]]=[d.ex[j],d.ex[i]];
+  [draft[i],draft[j]]=[draft[j],draft[i]];
+  if(draft._unavailable){
+    [draft._unavailable[i],draft._unavailable[j]]=[draft._unavailable[j],draft._unavailable[i]];
+    if(!draft._unavailable[i])delete draft._unavailable[i];
+    if(!draft._unavailable[j])delete draft._unavailable[j];
+  }
+  localStorage.setItem(draftKey(),JSON.stringify(draft));
+  savePlan();renderTreino();toast("Ordem dos exercícios atualizada.");
+}
+function editExerciseNote(i){
+  const d=curDay(),e=d&&d.ex[i];if(!e)return;
+  const note=prompt("Observação deste exercício (equipamento, pegada, regulagem, execução etc.):",e[3]||"");
+  if(note===null)return;
+  e[3]=note.trim();savePlan();renderTreino();toast("Observação salva.");
+}
+function createIndependentVariation(i){
+  const d=curDay(),e=d&&d.ex[i];if(!e)return;
+  const name=prompt("Nome desta variação independente. Ela terá histórico e progressão separados:",e[0]+" — variação");
+  if(!name||!name.trim())return;
+  const clean=name.trim();
+  if(d.ex.some((x,j)=>j!==i&&x[0].toLowerCase()===clean.toLowerCase())){
+    toast("Já existe um exercício com esse nome neste dia.");return;
+  }
+  const note=prompt("Observação opcional sobre a variação:",e[3]||"") ;
+  if(note===null)return;
+  e[0]=clean;e[3]=note.trim();
+  savePlan();renderTreino();toast("Variação criada com histórico independente.");
 }
 
 function syncDraft(){
@@ -1147,7 +1212,8 @@ function finishSession(){
   if(!rowsOut.length&&!unavailable.length){toast("Preencha uma série ou registre um exercício não realizado.");return;}
   const goals={};
   d.ex.forEach(e=>{
-    const pg=progressionFor(e[0],e[1]);
+    const exRange=effectiveRepRange(e[0],e[1]);
+  const pg=progressionFor(e[0],exRange);
     if(pg&&pg.last)goals[e[0]]={kg:pg.targetKg||null,extra:pg.extraKg||null,reps:pg.targetReps,mode:pg.mode};
   });
   const sess=readSession();
@@ -1245,7 +1311,7 @@ function rangeText(rr){return rr.lo===rr.hi?String(rr.lo):`${rr.lo}–${rr.hi}`;
 /* preenche as séries vazias do exercício com a meta */
 function useGoal(i){
   const d=curDay();if(!d)return;
-  const e=d.ex[i],pg=e&&progressionFor(e[0],e[1]);
+  const e=d.ex[i],pg=e&&progressionFor(e[0],effectiveRepRange(e[0],e[1]));
   if(!pg||!pg.last)return;
   const card=document.querySelectorAll("#list .ex")[i];if(!card)return;
   card.querySelectorAll(".set").forEach(row=>{
@@ -1661,9 +1727,10 @@ function renderFocus(){
     const wp=warmPlan(d),wd=wp.ws.done||{},wt=wp.flat.length,wn=wp.flat.filter(s=>wd[s.id]).length;
     if(wn<wt)h+=`<div class="focus-warm"><span>🔥 Aquecimento ${wn}/${wt}</span><button type="button" data-f="warm">Abrir guia</button></div>`;
   }
-  const info=find(e[0]),pg=progressionFor(e[0],e[1]),hasGoal=!!(pg&&pg.last);
+  const exRange=effectiveRepRange(e[0],e[1]);
+  const info=find(e[0]),pg=progressionFor(e[0],exRange),hasGoal=!!(pg&&pg.last);
   h+=`<div class="focus-name">${esc(e[0])}</div>
-  <div class="warm-sub"><span class="badge">${esc(info[1])} • ${esc(e[1])}</span>${warmKinds[e[0]]?`<span class="badge warm-badge">${warmKinds[e[0]]==="warm"?"🔥 Aquecer":"Feeder"}</span>`:""}</div>`;
+  <div class="warm-sub"><span class="badge">${esc(info[1])} • ${esc(exRange)}</span>${warmKinds[e[0]]?`<span class="badge warm-badge">${warmKinds[e[0]]==="warm"?"🔥 Aquecer":"Feeder"}</span>`:""}</div>`;
   if(hasGoal)h+=`<div class="goal-box"><div class="muted tiny">${esc(lastText(pg))}</div><div class="goal-line">🎯 Hoje: <b>${esc(goalText(pg))}</b></div>${exDone?"":`<button type="button" class="ghost goal-btn" data-f="goal">Usar meta</button>`}</div>`;
   else if(pg&&pg.first)h+=`<div class="goal-box"><div class="muted tiny">🎯 Primeira vez por aqui: ache uma carga que feche ${rangeText(pg.rr)} reps com 1–2 de reserva.</div></div>`;
   h+=`<div class="focus-dots">${Array.from({length:e[2]},(_,s)=>{const dn=setDone(focusIdx,s);return `<button type="button" class="focus-dot ${dn?"done":""} ${s===focusSet&&!exDone?"cur":""}" data-f="dot" data-s="${s}">${dn?"✓":s+1}</button>`;}).join("")}</div>`;
@@ -2155,7 +2222,8 @@ function editItemRow(e,i){
     <div class="tiny">Exercício ${i+1}</div>
     <div class="edit-grid">
       <button type="button" class="ex-pick-btn" data-action="pick-open" data-idx="${i}">${esc(e[0])}</button>
-      <input class="sc" type="number" min="1" max="8" value="${e[2]}" aria-label="Número de séries">
+      <input class="sc" type="number" min="1" max="8" value="${e[2]}" aria-label="Número de séries" title="Séries">
+      <input class="exercise-range" type="text" value="${esc((settings.exerciseRepRanges||{})[e[0]]||"")}" placeholder="${esc(settings.defaultRepRange||e[1])}" aria-label="Faixa de repetições específica" title="Faixa específica; vazio usa a geral">
       <button type="button" class="danger" data-action="remove-ex" data-idx="${i}" aria-label="Remover exercício">🗑</button>
     </div>
   </div>`;
@@ -2165,9 +2233,15 @@ function saveExerciseEditor(){
   const d=curDay();
   document.querySelectorAll("#editList .edit-row").forEach((row,i)=>{
     const sets=Math.max(1,Math.min(8,+row.querySelector(".sc").value||1));
-    if(d.ex[i])d.ex[i][2]=sets;
+    if(d.ex[i]){
+      d.ex[i][2]=sets;
+      const range=row.querySelector(".exercise-range").value.trim();
+      if(!settings.exerciseRepRanges)settings.exerciseRepRanges={};
+      if(range)settings.exerciseRepRanges[d.ex[i][0]]=range;
+      else delete settings.exerciseRepRanges[d.ex[i][0]];
+    }
   });
-  savePlan();closeM("editModal");renderTreino();toast("Treino atualizado!");
+  saveAll();closeM("editModal");renderTreino();toast("Treino atualizado!");
 }
 
 /* ---------- seletor de exercício com busca ---------- */
@@ -2196,7 +2270,7 @@ function pickExercise(name){
     d.ex.push([name,info[2],1]);
   }else{
     const idx=pickerTarget;
-    if(d.ex[idx])d.ex[idx]=[name,info[2],d.ex[idx][2]];
+    if(d.ex[idx])d.ex[idx]=[name,info[2],d.ex[idx][2],d.ex[idx][3]||""];
   }
   savePlan();
   closeM("pickerModal");
@@ -2414,7 +2488,7 @@ function renderLibrary(){
   $("lib").innerHTML=items.length?`<div class="library-grid">${items.map(x=>`
     <div class="card lib-card">
       <div class="row between" style="align-items:flex-start">
-        <div><b>${esc(x[0])}</b><br><span class="muted">${esc(x[1])} • ${esc(x[2])}</span></div>
+        <div><b>${esc(x[0])}</b><br><span class="muted">${esc(x[1])} • ${esc(effectiveRepRange(x[0],x[2]))}</span></div>
         <button type="button" class="ghost" data-action="guide" data-name="${esc(x[0])}">Ver</button>
       </div>
       <p class="muted lib-desc">${esc(x[3])}</p>
@@ -2426,6 +2500,7 @@ function saveSettings(){
   settings.name=$("name").value.trim();
   settings.unit=$("unit").value;
   settings.rir=Math.max(0,Math.min(5,+$("rir").value||0));
+  settings.defaultRepRange=$("defaultRepRange").value.trim();
   saveAll();renderTreino();toast("Preferências salvas.");
 }
 function resetAll(){
@@ -2435,8 +2510,11 @@ function resetAll(){
 }
 function setTheme(t){
   const c=THEMES[t]||THEMES.latao;
-  document.documentElement.style.setProperty("--accent",c[0]);
-  document.documentElement.style.setProperty("--accent-2",c[1]);
+  const root=document.documentElement;
+  const vars={"--accent":c.a,"--accent-2":c.a2,"--bg":c.bg,"--surface":c.s,"--surface-2":c.s2,"--surface-3":c.s3,"--text":c.t,"--muted":c.m,"--line":c.l};
+  Object.entries(vars).forEach(([k,v])=>root.style.setProperty(k,v));
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content",c.bg);
+  document.body.dataset.theme=t;
   settings.theme=t;saveAll();markThemeActive();
 }
 function markThemeActive(){
@@ -2455,6 +2533,7 @@ function applyAppearance(){
   $("name").value=settings.name||"";
   $("unit").value=settings.unit||"kg";
   $("rir").value=settings.rir??1;
+  $("defaultRepRange").value=settings.defaultRepRange||"";
   $("barKgInput").value=settings.barKg||"";
   $("platesInput").value=(settings.plates||[]).join(" ");
   $("weightKg").value=settings.weightKg||"";
@@ -2757,6 +2836,10 @@ $("list").addEventListener("click",e=>{
   else if(action==="use-goal")useGoal(idx);
   else if(action==="plates")openPlatesFor(idx);
   else if(action==="dane-se")markUnavailable(idx);
+  else if(action==="move-ex-up")moveExerciseInWorkout(idx,-1);
+  else if(action==="move-ex-down")moveExerciseInWorkout(idx,1);
+  else if(action==="exercise-note")editExerciseNote(idx);
+  else if(action==="exercise-variant")createIndependentVariation(idx);
 });
 $("list").addEventListener("input",()=>{touchWorkout();syncDraft();});
 $("ratingStars").addEventListener("click",e=>{
