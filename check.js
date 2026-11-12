@@ -369,6 +369,7 @@ function renderTreino(){
   $("list").innerHTML=d.ex.map((e,i)=>exerciseRow(e,i,draft)).join("");
 }
 function exerciseRow(e,i,draft){
+  const d=curDay();
   const info=find(e[0]);
   const draftUnavailable=(draft._unavailable||{})[i]||null;
   const exRange=effectiveRepRange(e[0],e[1]);
