@@ -1,3 +1,11 @@
+## Backup do progresso (novo)
+
+- **Configurações → Backup do progresso**: salva tudo (histórico, metas, planos, faixas de repetição, academias e preferências) em um único arquivo `.json`.
+- **Trocar de celular**: abra o app no aparelho novo → *Restaurar de um arquivo* → escolha o backup. Os dados do aparelho são substituídos, e dá para **desfazer** logo depois.
+- **Backup automático 1x por semana**: roda sozinho na primeira vez que o app é aberto depois de 7 dias sem backup (navegadores não permitem salvar arquivos com o app fechado). O arquivo vai para a pasta Downloads. Pode ser desligado.
+- **Enviar / compartilhar**: manda o arquivo direto para o Google Drive, e-mail, WhatsApp etc. (onde o aparelho permitir).
+- As **chaves de IA não entram** no arquivo; ao restaurar, as chaves do aparelho atual são mantidas.
+
 ## Atualização visual e faixas de repetição
 
 - 10 temas completos, com paletas próprias para fundo, cartões, textos e destaques.

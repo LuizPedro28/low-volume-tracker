@@ -269,6 +269,7 @@ function showView(id,btn){
   if(id==="historico")renderHistory();
   if(id==="exercicios")renderLibrary();
   if(id==="config")markThemeActive();
+  if(id==="config")renderBackupCard();
   if(id==="ia"){renderAiMessages();const hasKey=settings.aiProvider==="gemini"?!!settings.aiKeyGemini:!!settings.aiKeyAnthropic;$("aiKeyWarning").style.display=hasKey?"none":"block";}
 }
 function closeM(id){$(id).classList.remove("open");}
@@ -967,6 +968,155 @@ $("importFile").addEventListener("change",async e=>{
   e.target.value="";
   runImport(text);
 });
+
+/* ---------- backup / restauração ---------- */
+const BACKUP_FORMAT="low-volume-tracker/backup";
+const BACKUP_WEEK_MS=7*24*60*60*1000;
+const BACKUP_SKIP=["lvt_backup_meta","lvt_pre_restore","lvt_ai_chat","lvt_plan_backup"];
+const AI_SECRET_KEYS=["aiKeyGemini","aiKeyAnthropic","aiApiKey"];
+function isBackupKey(k){return !!k&&!BACKUP_SKIP.includes(k)&&(k.startsWith("lvt_")||k.startsWith("draft_")||k.startsWith("warm_"));}
+function backupMeta(){
+  try{return Object.assign({auto:true,last:null},JSON.parse(localStorage.getItem("lvt_backup_meta")||"{}"));}
+  catch(e){return {auto:true,last:null};}
+}
+function saveBackupMeta(m){try{localStorage.setItem("lvt_backup_meta",JSON.stringify(m));}catch(e){}}
+function readAllBackupKeys(stripSecrets){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(isBackupKey(k))data[k]=localStorage.getItem(k);}
+  if(stripSecrets&&data.lvt_settings){
+    try{const st=JSON.parse(data.lvt_settings);AI_SECRET_KEYS.forEach(x=>delete st[x]);data.lvt_settings=JSON.stringify(st);}catch(e){}
+  }
+  return data;
+}
+function buildBackup(){
+  saveAll();
+  const data=readAllBackupKeys(true);
+  let nLogs=0,nDays=0;
+  try{nLogs=JSON.parse(data.lvt_logs||"[]").length;}catch(e){}
+  try{nDays=JSON.parse(data.lvt_plan_v2||"[]").length;}catch(e){}
+  return {formato:BACKUP_FORMAT,versao:1,criadoEm:new Date().toISOString(),resumo:{treinos:nLogs,dias:nDays},dados:data};
+}
+function backupFileName(){
+  const d=new Date(),p=n=>String(n).padStart(2,"0");
+  return `low-volume-tracker-backup-${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}.json`;
+}
+function markBackupDone(iso){const m=backupMeta();m.last=iso;saveBackupMeta(m);renderBackupCard();}
+function backupDownload(auto){
+  try{
+    const b=buildBackup();
+    downloadText(backupFileName(),JSON.stringify(b),"application/json");
+    markBackupDone(b.criadoEm);
+    toast(auto===true?"Backup semanal salvo na pasta Downloads.":"Backup salvo! Guarde o arquivo em um lugar seguro.");
+    return true;
+  }catch(e){console.warn("Falha no backup",e);toast("Não consegui gerar o backup.");return false;}
+}
+async function backupShare(){
+  try{
+    const b=buildBackup();
+    const file=new File([JSON.stringify(b)],backupFileName(),{type:"application/json"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:"Backup do Low Volume Tracker"});
+      markBackupDone(b.criadoEm);toast("Backup enviado.");
+    }else{backupDownload();}
+  }catch(e){
+    if(e&&e.name==="AbortError")return;
+    backupDownload();
+  }
+}
+function backupSetAuto(on){
+  const m=backupMeta();m.auto=!!on;saveBackupMeta(m);
+  toast(on?"Backup semanal ligado.":"Backup semanal desligado.");
+  renderBackupCard();
+  if(on)backupAutoCheck();
+}
+function backupDue(){
+  const m=backupMeta();
+  if(!m.auto||!logs.length)return false;   // sem histórico, não há o que proteger
+  if(!m.last)return true;
+  return Date.now()-new Date(m.last).getTime()>=BACKUP_WEEK_MS;
+}
+let backupRunning=false;
+function backupAutoCheck(){
+  if(backupRunning||!backupDue())return;
+  backupRunning=true;
+  try{backupDownload(true);}finally{setTimeout(()=>{backupRunning=false;},3000);}
+}
+function renderBackupCard(){
+  const el=$("backupStatus");if(!el)return;
+  const m=backupMeta();
+  let t;
+  if(m.last){
+    const d=new Date(m.last),days=Math.floor((Date.now()-d.getTime())/86400000);
+    t=`Último backup: <b>${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</b> (${days<=0?"hoje":days===1?"ontem":"há "+days+" dias"}).`;
+  }else t="Você ainda não fez nenhum backup neste aparelho.";
+  t+=` O app guarda hoje <b>${logs.length}</b> treino(s) no histórico.`;
+  el.innerHTML=t;
+  $("backupAutoCheck").checked=!!m.auto;
+  $("backupShareBtn").style.display=(typeof File!=="undefined"&&navigator.canShare)?"":"none";
+  $("undoRestoreBox").style.display=localStorage.getItem("lvt_pre_restore")?"block":"none";
+}
+function applyBackupData(data){
+  const rm=[];
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(isBackupKey(k))rm.push(k);}
+  rm.forEach(k=>localStorage.removeItem(k));
+  Object.keys(data).forEach(k=>{if(isBackupKey(k)&&typeof data[k]==="string")localStorage.setItem(k,data[k]);});
+}
+async function restoreFromFile(file){
+  if(file.size>25*1024*1024){alert("Arquivo grande demais para ser um backup do app.");return;}
+  let b;
+  try{b=JSON.parse(await file.text());}catch(e){alert("Esse arquivo não é um JSON válido.");return;}
+  if(!b||b.formato!==BACKUP_FORMAT||!b.dados||typeof b.dados!=="object"){
+    alert("Esse arquivo não parece um backup do Low Volume Tracker.\n\n(Para importar um plano de treino gerado por IA, use \"Importar / exportar treino\".)");return;
+  }
+  const keys=Object.keys(b.dados).filter(isBackupKey);
+  if(!keys.length||(!("lvt_plan_v2" in b.dados)&&!("lvt_logs" in b.dados))){alert("Esse backup está vazio.");return;}
+  for(const k of keys){if(typeof b.dados[k]!=="string"){alert("Backup corrompido (campo "+k+").");return;}}
+  for(const k of ["lvt_plan_v2","lvt_logs","lvt_settings"]){
+    if(k in b.dados){try{JSON.parse(b.dados[k]);}catch(e){alert("Backup corrompido (campo "+k+").");return;}}
+  }
+  const quando=b.criadoEm?new Date(b.criadoEm).toLocaleString("pt-BR"):"data desconhecida";
+  const r=b.resumo||{};
+  const msg=`Restaurar o backup de ${quando}?\n\n• Backup: ${r.treinos??"?"} treino(s) no histórico, ${r.dias??"?"} dia(s) no plano\n• Neste aparelho agora: ${logs.length} treino(s), ${plan.length} dia(s)\n\nTudo o que está neste aparelho será SUBSTITUÍDO pelo conteúdo do backup (suas chaves de IA daqui são mantidas). Dá para desfazer logo depois.`;
+  if(!confirm(msg))return;
+  saveAll();
+  const before=readAllBackupKeys(false);
+  let snapOk=true;
+  try{localStorage.setItem("lvt_pre_restore",JSON.stringify({criadoEm:new Date().toISOString(),dados:before}));}
+  catch(e){snapOk=false;}
+  if(!snapOk&&!confirm("Não consegui guardar uma cópia do estado atual (sem espaço). Restaurar mesmo assim, sem poder desfazer?"))return;
+  let localSettings={};
+  try{localSettings=JSON.parse(localStorage.getItem("lvt_settings")||"{}");}catch(e){}
+  try{
+    applyBackupData(b.dados);
+    if(localStorage.getItem("lvt_settings")){
+      const st=JSON.parse(localStorage.getItem("lvt_settings"));
+      AI_SECRET_KEYS.forEach(x=>{if(localSettings[x])st[x]=localSettings[x];});
+      localStorage.setItem("lvt_settings",JSON.stringify(st));
+    }
+  }catch(e){
+    console.warn("Falha ao restaurar",e);
+    try{applyBackupData(before);}catch(e2){}
+    alert("Não consegui restaurar (provavelmente falta de espaço). Seus dados anteriores foram mantidos.");
+    return;
+  }
+  const m=backupMeta();m.last=new Date().toISOString();saveBackupMeta(m);
+  location.reload();
+}
+function undoRestore(){
+  let snap;
+  try{snap=JSON.parse(localStorage.getItem("lvt_pre_restore")||"null");}catch(e){snap=null;}
+  if(!snap||!snap.dados){toast("Nada para desfazer.");renderBackupCard();return;}
+  if(!confirm("Voltar ao estado de antes da última restauração? O que está no app agora será substituído."))return;
+  try{applyBackupData(snap.dados);localStorage.removeItem("lvt_pre_restore");}
+  catch(e){alert("Não consegui desfazer.");return;}
+  location.reload();
+}
+$("restoreFile").addEventListener("change",async e=>{
+  const f=e.target.files[0];e.target.value="";
+  if(f)await restoreFromFile(f);
+});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")backupAutoCheck();});
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});}catch(e){}
 
 /* ---------- modo foco ---------- */
 let focusOpen=false,focusIdx=0,focusSet=null,focusTick=null,focusWake=false,focusRestActive=false;
@@ -2344,6 +2494,8 @@ renderTreino();
 renderHistory();
 renderLibrary();
 renderAiMessages();
+renderBackupCard();
+setTimeout(backupAutoCheck,1500);
 
 /* ---------- PWA: instalação + offline ---------- */
 if("serviceWorker" in navigator){
