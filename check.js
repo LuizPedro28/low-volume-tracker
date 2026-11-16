@@ -270,6 +270,7 @@ function showView(id,btn){
   if(id==="exercicios")renderLibrary();
   if(id==="config")markThemeActive();
   if(id==="config")renderBackupCard();
+  if(id==="historico")renderStats();
   if(id==="ia"){renderAiMessages();const hasKey=settings.aiProvider==="gemini"?!!settings.aiKeyGemini:!!settings.aiKeyAnthropic;$("aiKeyWarning").style.display=hasKey?"none":"block";}
 }
 function closeM(id){$(id).classList.remove("open");}
@@ -1863,6 +1864,7 @@ function renderHistory(){
   }).join(""):emptyState("📓","Nenhum treino salvo ainda","Finalize uma sessão em Treino para começar seu histórico.");
   populateChartExerciseSelect();
   renderExerciseChart();
+  renderStats();
 }
 
 /* ---------- gráfico de evolução por exercício ---------- */
@@ -1933,6 +1935,213 @@ function renderExerciseChart(){
     ${buildLineChartSVG(points,600,170)}
     <div class="chart-dates"><span>${new Date(first.date).toLocaleDateString("pt-BR")}</span><span>${new Date(last.date).toLocaleDateString("pt-BR")}</span></div>
     <p class="muted" style="font-size:11px;margin-top:8px">"Desde o treino anterior" compara o volume total (carga × repetições) deste exercício entre as duas últimas sessões registradas.</p>`;
+}
+
+/* ---------- painel: visão geral, músculos, recordes, atenção, peso ---------- */
+let bodyLog=[];
+try{
+  bodyLog=(JSON.parse(localStorage.getItem("lvt_bodylog")||"[]")||[])
+    .filter(e=>e&&/^\d{4}-\d{2}-\d{2}$/.test(e.date)&&+e.kg>0)
+    .map(e=>({date:e.date,kg:+e.kg})).sort((a,b)=>a.date.localeCompare(b.date));
+}catch(e){bodyLog=[];}
+function saveBodyLog(){try{localStorage.setItem("lvt_bodylog",JSON.stringify(bodyLog));}catch(e){}}
+
+const MUSCLE_GROUPS={
+  "Peito":["Peito","Peito superior"],"Costas":["Costas","Dorsais","Trapézio"],
+  "Ombros":["Ombros","Deltoide anterior","Deltoide lateral","Deltoide posterior"],
+  "Bíceps":["Bíceps"],"Tríceps":["Tríceps"],"Quadríceps":["Quadríceps"],
+  "Posterior de coxa":["Posterior","Posterior de coxa"],"Glúteos":["Glúteos","Glúteo médio"],
+  "Panturrilhas":["Panturrilhas","Sóleo"],"Abdômen":["Abdômen","Core","Reto abdominal"],"Adutores":["Adutores"]
+};
+function muscleGroupOf(exName){
+  const prim=String(find(exName)[1]||"").split("•")[0].trim();
+  for(const g in MUSCLE_GROUPS)if(MUSCLE_GROUPS[g].includes(prim))return g;
+  return "Outros";
+}
+function dayKey(d){d=new Date(d);const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+function weekStart(date){const d=new Date(date);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function logsBetween(a,b){return logs.filter(l=>{const t=new Date(l.date);return t>=a&&t<b;});}
+function fmtKg(n){return (Math.round(n*10)/10).toString().replace(".",",");}
+function safeRun(fn){try{fn();}catch(e){console.warn("painel:",e);}}
+
+function renderStats(){
+  if(!$("ovBody"))return;
+  [renderOverview,renderMuscleWeek,renderPRs,renderStalled,renderBodyCard].forEach(safeRun);
+}
+function weeklyGoal(){const g=+settings.weeklyGoal;return g>=1&&g<=7?g:3;}
+function setWeeklyGoal(v){settings.weeklyGoal=+v;saveAll();renderOverview();}
+function renderOverview(){
+  const now=new Date(),goal=weeklyGoal();
+  const dayMap={};
+  logs.forEach(l=>{(dayMap[dayKey(l.date)]=dayMap[dayKey(l.date)]||[]).push(l.name);});
+  const trainedDays=(ws)=>{let n=0;for(let i=0;i<7;i++)if(dayMap[dayKey(addDays(ws,i))])n++;return n;};
+  const ws=weekStart(now),thisWeek=trainedDays(ws);
+  // sequência de semanas cumprindo a meta (a semana atual só conta se já bateu a meta)
+  let streak=0,w=thisWeek>=goal?ws:addDays(ws,-7);
+  for(let i=0;i<520&&trainedDays(w)>=goal;i++){streak++;w=addDays(w,-7);}
+  const last30=logsBetween(addDays(now,-30),addDays(now,1)).length;
+  const v7=logsBetween(addDays(now,-7),addDays(now,1)).reduce((s,l)=>s+sessionVolume(l),0);
+  const vPrev=logsBetween(addDays(now,-14),addDays(now,-7)).reduce((s,l)=>s+sessionVolume(l),0);
+  let volTxt="—",volCls="";
+  if(vPrev>0){const pct=(v7-vPrev)/vPrev*100;volTxt=(pct>0?"+":"")+pct.toFixed(0)+"%";volCls=pct>0?"pos":pct<0?"neg":"";}
+  const pctGoal=Math.min(100,thisWeek/goal*100);
+  // calendário das últimas 12 semanas (segunda → domingo, de cima pra baixo)
+  const start=addDays(ws,-7*11),todayK=dayKey(now);let cells="";
+  for(let i=0;i<84;i++){
+    const d=addDays(start,i),k=dayKey(d),names=dayMap[k];
+    const cls=(names?"on ":"")+(d>now&&k!==todayK?"fut ":"")+(k===todayK?"today":"");
+    cells+=`<i class="${cls.trim()}" title="${d.toLocaleDateString("pt-BR")}${names?" — "+esc(names.join(", ")):""}"></i>`;
+  }
+  $("ovBody").innerHTML=`
+    <div class="row between" style="align-items:center;gap:8px">
+      <span class="muted tiny">Meta de treinos por semana</span>
+      <select class="field-input" style="width:auto" onchange="setWeeklyGoal(this.value)">${[1,2,3,4,5,6,7].map(n=>`<option value="${n}"${n===goal?" selected":""}>${n}x</option>`).join("")}</select>
+    </div>
+    <div style="margin-top:10px"><b>Esta semana: ${thisWeek}/${goal}</b> <span class="muted tiny">(seg–dom)</span>
+      <div class="ov-bar"><span style="width:${pctGoal}%"></span></div></div>
+    <div class="chart-stats">
+      <div><span class="muted tiny">Sequência</span><br><b>${streak} sem.</b></div>
+      <div><span class="muted tiny">Treinos em 30 dias</span><br><b>${last30}</b></div>
+      <div><span class="muted tiny">Volume 7 dias</span><br><b class="${volCls}">${volTxt}</b></div>
+      <div><span class="muted tiny">Total no histórico</span><br><b>${logs.length}</b></div>
+    </div>
+    <div class="hm" aria-label="Calendário de treinos das últimas 12 semanas">${cells}</div>
+    <p class="muted" style="font-size:11px;margin:8px 0 0">Últimas 12 semanas (cada linha é um dia da semana, de segunda a domingo). "Sequência" = semanas seguidas batendo a meta. Considera todas as academias.</p>`;
+}
+
+function weekSetsTarget(){const t=+settings.weekSetsTarget;return t>=1&&t<=40?t:10;}
+function setWeekSetsTarget(v){settings.weekSetsTarget=+v;saveAll();renderMuscleWeek();}
+function countSetsByGroup(a,b){
+  const out={};
+  logsBetween(a,b).forEach(l=>l.rows.forEach(r=>{
+    if(!((r.kg||0)>0||(r.reps||0)>0))return;
+    const g=muscleGroupOf(r.exercise);out[g]=(out[g]||0)+1;
+  }));
+  return out;
+}
+function renderMuscleWeek(){
+  const ws=weekStart(new Date()),cur=countSetsByGroup(ws,addDays(ws,7)),prev=countSetsByGroup(addDays(ws,-7),ws);
+  const target=weekSetsTarget();
+  const groups=[...Object.keys(MUSCLE_GROUPS),"Outros"].filter(g=>cur[g]||prev[g]);
+  const sel=`<div class="row between" style="align-items:center;gap:8px"><span class="muted tiny">Referência semanal (séries por músculo)</span>
+    <select class="field-input" style="width:auto" onchange="setWeekSetsTarget(this.value)">${[6,8,10,12,15,20].map(n=>`<option value="${n}"${n===target?" selected":""}>${n}</option>`).join("")}</select></div>`;
+  if(!groups.length){$("muscleBody").innerHTML=sel+emptyState("💪","Sem séries nas últimas 2 semanas","Finalize treinos para ver quantas séries cada músculo recebeu.");return;}
+  const rows=groups.sort((a,b)=>(cur[b]||0)-(cur[a]||0)).map(g=>{
+    const n=cur[g]||0,pct=Math.min(100,n/(target*1.5)*100),tick=target/(target*1.5)*100;
+    const st=n===0?"parado":n<target?"abaixo":n===target?"na meta":"acima";
+    const col=n>=target?"var(--success)":"var(--accent)";
+    return `<div class="mus-row"><span>${esc(g)}</span>
+      <div class="ov-bar"><span style="width:${pct}%;background:${col}"></span><i class="tick" style="left:${tick}%"></i></div>
+      <span style="text-align:right"><b>${n}</b> <span class="muted tiny">${st}${prev[g]!=null?` · ant. ${prev[g]}`:""}</span></span></div>`;
+  }).join("");
+  $("muscleBody").innerHTML=sel+rows+`<p class="muted" style="font-size:11px;margin:10px 0 0">Conta as séries registradas nesta semana (seg–dom), no <b>músculo principal</b> de cada exercício — o trabalho secundário (ex.: tríceps no supino) não entra. A linha vertical é a referência escolhida; "ant." é a semana passada. É só um guia pessoal: ajuste ao seu plano.</p>`;
+}
+
+function exerciseSessions(name){
+  const out=[];
+  [...logs].reverse().forEach(l=>{
+    const st=exStats(l.rows.filter(r=>r.exercise===name));
+    if(st&&st.top>0)out.push({date:l.date,top:st.top,reps:Math.max(...st.repsList),e1:st.e1rm});
+  });
+  return out;
+}
+function loggedLoadedExercises(){
+  const set=new Set();logs.forEach(l=>l.rows.forEach(r=>{if((r.kg||0)>0)set.add(r.exercise);}));return [...set];
+}
+let prShowAll=false;
+function togglePrAll(){prShowAll=!prShowAll;renderPRs();}
+function renderPRs(){
+  const list=loggedLoadedExercises().map(name=>{
+    const hist=exerciseSessions(name);let bestLoad=null,bestE1=0;
+    hist.forEach(h=>{
+      if(!bestLoad||h.top>bestLoad.top||(h.top===bestLoad.top&&h.reps>bestLoad.reps))bestLoad={top:h.top,reps:h.reps,date:h.date};
+      if(h.e1>bestE1*1.0001)bestE1=h.e1;
+    });
+    return {name,bestLoad,bestE1,date:bestLoad.date};
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+  if(!list.length){$("prBody").innerHTML=emptyState("🏆","Sem recordes ainda","Registre cargas nos treinos e seus melhores resultados aparecem aqui.");return;}
+  const show=prShowAll?list:list.slice(0,8),u=esc(settings.unit);
+  $("prBody").innerHTML=show.map(x=>{
+    const recent=(Date.now()-new Date(x.date).getTime())<=14*86400000;
+    return `<div class="pr-row"><div><b>${esc(x.name)}</b>${recent?` <span class="badge">🆕 recente</span>`:""}<br><span class="muted tiny">${new Date(x.date).toLocaleDateString("pt-BR")}</span></div>
+      <div style="text-align:right;white-space:nowrap"><b>${fmtKg(x.bestLoad.top)} ${u} × ${x.bestLoad.reps}</b><br><span class="muted tiny">1RM est. ~${fmtKg(Math.round(x.bestE1*2)/2)} ${u}</span></div></div>`;
+  }).join("")+(list.length>8?`<div class="actions"><button type="button" onclick="togglePrAll()">${prShowAll?"Mostrar menos":`Ver todos (${list.length})`}</button></div>`:"")
+   +`<p class="muted" style="font-size:11px;margin:8px 0 0">Mostra a maior carga já usada em cada exercício (com as repetições feitas nela). O 1RM estimado é uma conta aproximada a partir das suas séries — serve de referência, não como teste de força máxima.</p>`;
+}
+
+function renderStalled(){
+  const card=$("stallCard"),items=[];
+  loggedLoadedExercises().forEach(name=>{
+    const h=exerciseSessions(name);if(h.length<4)return;
+    const maxE1=Math.max(...h.map(x=>x.e1)),peak=h.findIndex(x=>x.e1>=maxE1*0.995);
+    const stuck=h.length-1-peak;
+    const last=new Date(h[h.length-1].date).getTime();
+    if(stuck>=3&&Date.now()-last<=45*86400000)items.push({name,stuck,best:h[peak]});
+  });
+  if(!items.length){card.style.display="none";return;}
+  items.sort((a,b)=>b.stuck-a.stuck);
+  card.style.display="";
+  $("stallBody").innerHTML=`<p class="muted" style="margin:0">Exercícios sem bater o melhor resultado há 3 ou mais sessões:</p>`
+    +items.slice(0,5).map(x=>`<div class="stall-item"><b>${esc(x.name)}</b> — ${x.stuck} sessões desde o melhor (${fmtKg(x.best.top)} ${esc(settings.unit)} × ${x.best.reps}).</div>`).join("")
+    +`<p class="muted" style="font-size:11px;margin:10px 0 0">Pode ser normal (semana de deload, fase de corte, treino mais pesado em outro exercício). Se não for, vale tentar: mudar a faixa de repetições, aumentar o descanso entre séries, revisar sono e alimentação, ou fazer uma semana mais leve antes de tentar de novo.</p>`;
+}
+
+function renderBodyCard(){
+  if(!$("bwDate").value)$("bwDate").value=dayKey(new Date());
+  if(!bodyLog.length){$("bwBody").innerHTML=emptyState("⚖️","Nenhum peso registrado","Registre seu peso de vez em quando para acompanhar a tendência.");return;}
+  const last=bodyLog[bodyLog.length-1],u="kg";
+  const cut=dayKey(addDays(new Date(),-30)),inWin=bodyLog.filter(e=>e.date>=cut);
+  const diff=inWin.length>=2?last.kg-inWin[0].kg:null;
+  const pts=bodyLog.slice(-30).map(e=>({value:e.kg,label:`${e.date.split("-").reverse().join("/")} — ${fmtKg(e.kg)} ${u}`}));
+  const fmtD=d=>d.split("-").reverse().join("/");
+  $("bwBody").innerHTML=`
+    <div class="chart-stats">
+      <div><span class="muted tiny">Atual</span><br><b>${fmtKg(last.kg)} kg</b></div>
+      <div><span class="muted tiny">Variação (30 dias)</span><br><b>${diff==null?"—":(diff>0?"+":"")+fmtKg(diff)+" kg"}</b></div>
+      <div><span class="muted tiny">Registros</span><br><b>${bodyLog.length}</b></div>
+    </div>
+    ${pts.length>=2?buildLineChartSVG(pts,600,150)+`<div class="chart-dates"><span>${fmtD(bodyLog.slice(-30)[0].date)}</span><span>${fmtD(last.date)}</span></div>`:""}
+    <div style="margin-top:10px">${[...bodyLog].reverse().slice(0,5).map(e=>`<div class="bw-row"><span>${fmtD(e.date)}</span><span><b>${fmtKg(e.kg)} kg</b> <button type="button" class="ghost" style="font-size:12px;padding:3px 9px" aria-label="Remover registro de ${fmtD(e.date)}" onclick="removeBodyWeight('${e.date}')">✕</button></span></div>`).join("")}</div>
+    <p class="muted" style="font-size:11px;margin:8px 0 0">O registro mais recente também atualiza seu peso em Configurações (usado no IMC).</p>`;
+}
+function syncWeightSetting(){
+  const last=bodyLog[bodyLog.length-1];
+  if(!last)return;   // sem registros: mantém o peso digitado manualmente em Configurações
+  settings.weightKg=last.kg;saveAll();
+  if($("weightKg"))$("weightKg").value=settings.weightKg||"";
+  computeAndShowBmi();
+}
+function addBodyWeight(){
+  const kg=parseFloat(String($("bwKg").value).replace(",","."));
+  const date=$("bwDate").value||dayKey(new Date());
+  if(!(kg>=20&&kg<=400)){toast("Digite um peso válido (entre 20 e 400 kg).");return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>dayKey(new Date())){toast("Escolha uma data válida (não pode ser no futuro).");return;}
+  bodyLog=bodyLog.filter(e=>e.date!==date);
+  bodyLog.push({date,kg:Math.round(kg*10)/10});
+  bodyLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveBodyLog();syncWeightSetting();
+  $("bwKg").value="";renderBodyCard();toast("Peso registrado.");
+}
+function removeBodyWeight(date){
+  if(!confirm("Remover o registro de "+date.split("-").reverse().join("/")+"?"))return;
+  bodyLog=bodyLog.filter(e=>e.date!==date);
+  saveBodyLog();syncWeightSetting();renderBodyCard();
+}
+
+function csvCell(v){const t=String(v??"");return /[;"\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;}
+function exportHistoryCsv(){
+  if(!logs.length){toast("Ainda não há treinos para exportar.");return;}
+  const head=["data","treino","academia","exercicio","serie","carga","repeticoes","rir","duracao_min"];
+  const lines=[head.join(";")];
+  [...logs].reverse().forEach(l=>{
+    const d=new Date(l.date),p=n=>String(n).padStart(2,"0");
+    const when=`${dayKey(d)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    const dur=l.durationSec!=null?Math.round(l.durationSec/60):"";
+    l.rows.forEach(r=>lines.push([when,l.name,l.gym||"",r.exercise,r.set??"",String(r.kg||0).replace(".",","),r.reps||0,r.rir??"",dur].map(csvCell).join(";")));
+  });
+  downloadText(`low-volume-tracker-historico-${dayKey(new Date())}.csv`,"\ufeff"+lines.join("\r\n"),"text/csv");
+  toast("Histórico exportado (abre no Excel/Planilhas).");
 }
 
 /* ---------- biblioteca ---------- */

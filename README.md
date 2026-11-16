@@ -1,3 +1,13 @@
+## Painel do Histórico (novo)
+
+Na aba **Histórico**, acima da lista de sessões:
+
+- **Visão geral:** meta de treinos por semana (editável), sequência de semanas batendo a meta, treinos em 30 dias, variação do volume em 7 dias e calendário das últimas 12 semanas. Botão para **exportar o histórico em CSV** (abre no Excel/Planilhas).
+- **Séries por músculo na semana:** conta as séries de cada grupo muscular (músculo principal do exercício) de segunda a domingo, com uma referência semanal editável e a comparação com a semana passada.
+- **Recordes pessoais:** maior carga de cada exercício (com as repetições) e 1RM estimado.
+- **Pedindo atenção:** exercícios que não batem o melhor resultado há 3+ sessões, com ideias do que tentar.
+- **Peso corporal:** registro com data, gráfico e variação em 30 dias. O registro mais recente atualiza o peso usado no IMC. Entra no backup (`lvt_bodylog`).
+
 ## Backup do progresso (novo)
 
 - **Configurações → Backup do progresso**: salva tudo (histórico, metas, planos, faixas de repetição, academias e preferências) em um único arquivo `.json`.
