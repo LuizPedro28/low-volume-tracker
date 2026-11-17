@@ -241,13 +241,13 @@ function loadPlan(){
 
 let plan=loadPlan();
 let logs=JSON.parse(localStorage.getItem("lvt_logs")||"[]");
-let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,defaultRepRange:"",exerciseRepRanges:{},timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,aiProvider:"gemini",aiKeyGemini:"",aiModelGemini:"gemini-2.5-flash",aiKeyAnthropic:"",aiModelAnthropic:"claude-sonnet-5",gyms:[],warmTimer:true,barKg:null,plates:[]},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
+let settings=Object.assign({name:"",unit:"kg",rir:1,theme:"latao",light:false,defaultRepRange:"",exerciseRepRanges:{},timerDuration:90,autoTimer:true,weightKg:null,heightCm:null,gyms:[],warmTimer:true,barKg:null,plates:[]},JSON.parse(localStorage.getItem("lvt_settings")||"{}"));
 settings.exerciseRepRanges=settings.exerciseRepRanges&&typeof settings.exerciseRepRanges==="object"?settings.exerciseRepRanges:{};
+// limpeza: o assistente de IA integrado foi removido (apaga chaves e conversa antigas deste aparelho)
+["aiProvider","aiKeyGemini","aiModelGemini","aiKeyAnthropic","aiModelAnthropic","aiApiKey","aiModel"].forEach(k=>{delete settings[k];});
+try{localStorage.removeItem("lvt_ai_chat");}catch(e){}
 let currentGym=localStorage.getItem("lvt_current_gym")||"";
 let currentRating=0;
-if(settings.aiApiKey&&!settings.aiKeyAnthropic){settings.aiKeyAnthropic=settings.aiApiKey;settings.aiProvider="anthropic";}
-if(settings.aiModel&&settings.aiModelAnthropic==="claude-sonnet-5"){settings.aiModelAnthropic=settings.aiModel;}
-if(settings.aiModelGemini==="gemini-2.0-flash"){settings.aiModelGemini="gemini-2.5-flash";}
 let currentDay=localStorage.getItem("lvt_current")||localStorage.getItem("lvt_day")||(plan[0]&&plan[0].id);
 if(!plan.find(d=>d.id===currentDay))currentDay=plan[0]?plan[0].id:null;
 
@@ -271,7 +271,6 @@ function showView(id,btn){
   if(id==="config")markThemeActive();
   if(id==="config")renderBackupCard();
   if(id==="historico")renderStats();
-  if(id==="ia"){renderAiMessages();const hasKey=settings.aiProvider==="gemini"?!!settings.aiKeyGemini:!!settings.aiKeyAnthropic;$("aiKeyWarning").style.display=hasKey?"none":"block";}
 }
 function closeM(id){$(id).classList.remove("open");}
 
@@ -974,7 +973,6 @@ $("importFile").addEventListener("change",async e=>{
 const BACKUP_FORMAT="low-volume-tracker/backup";
 const BACKUP_WEEK_MS=7*24*60*60*1000;
 const BACKUP_SKIP=["lvt_backup_meta","lvt_pre_restore","lvt_ai_chat","lvt_plan_backup"];
-const AI_SECRET_KEYS=["aiKeyGemini","aiKeyAnthropic","aiApiKey"];
 function isBackupKey(k){return !!k&&!BACKUP_SKIP.includes(k)&&(k.startsWith("lvt_")||k.startsWith("draft_")||k.startsWith("warm_"));}
 function backupMeta(){
   try{return Object.assign({auto:true,last:null},JSON.parse(localStorage.getItem("lvt_backup_meta")||"{}"));}
@@ -984,9 +982,6 @@ function saveBackupMeta(m){try{localStorage.setItem("lvt_backup_meta",JSON.strin
 function readAllBackupKeys(stripSecrets){
   const data={};
   for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(isBackupKey(k))data[k]=localStorage.getItem(k);}
-  if(stripSecrets&&data.lvt_settings){
-    try{const st=JSON.parse(data.lvt_settings);AI_SECRET_KEYS.forEach(x=>delete st[x]);data.lvt_settings=JSON.stringify(st);}catch(e){}
-  }
   return data;
 }
 function buildBackup(){
@@ -1077,7 +1072,7 @@ async function restoreFromFile(file){
   }
   const quando=b.criadoEm?new Date(b.criadoEm).toLocaleString("pt-BR"):"data desconhecida";
   const r=b.resumo||{};
-  const msg=`Restaurar o backup de ${quando}?\n\n• Backup: ${r.treinos??"?"} treino(s) no histórico, ${r.dias??"?"} dia(s) no plano\n• Neste aparelho agora: ${logs.length} treino(s), ${plan.length} dia(s)\n\nTudo o que está neste aparelho será SUBSTITUÍDO pelo conteúdo do backup (suas chaves de IA daqui são mantidas). Dá para desfazer logo depois.`;
+  const msg=`Restaurar o backup de ${quando}?\n\n• Backup: ${r.treinos??"?"} treino(s) no histórico, ${r.dias??"?"} dia(s) no plano\n• Neste aparelho agora: ${logs.length} treino(s), ${plan.length} dia(s)\n\nTudo o que está neste aparelho será SUBSTITUÍDO pelo conteúdo do backup. Dá para desfazer logo depois.`;
   if(!confirm(msg))return;
   saveAll();
   const before=readAllBackupKeys(false);
@@ -1085,15 +1080,8 @@ async function restoreFromFile(file){
   try{localStorage.setItem("lvt_pre_restore",JSON.stringify({criadoEm:new Date().toISOString(),dados:before}));}
   catch(e){snapOk=false;}
   if(!snapOk&&!confirm("Não consegui guardar uma cópia do estado atual (sem espaço). Restaurar mesmo assim, sem poder desfazer?"))return;
-  let localSettings={};
-  try{localSettings=JSON.parse(localStorage.getItem("lvt_settings")||"{}");}catch(e){}
   try{
     applyBackupData(b.dados);
-    if(localStorage.getItem("lvt_settings")){
-      const st=JSON.parse(localStorage.getItem("lvt_settings"));
-      AI_SECRET_KEYS.forEach(x=>{if(localSettings[x])st[x]=localSettings[x];});
-      localStorage.setItem("lvt_settings",JSON.stringify(st));
-    }
   }catch(e){
     console.warn("Falha ao restaurar",e);
     try{applyBackupData(before);}catch(e2){}
@@ -1959,7 +1947,10 @@ function muscleGroupOf(exName){
   return "Outros";
 }
 function dayKey(d){d=new Date(d);const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
-function weekStart(date){const d=new Date(date);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d;}
+function weekStartsOn(){return +settings.weekStartsOn===1?1:0;}   // 0 = domingo (padrão), 1 = segunda
+function weekRangeLabel(){return weekStartsOn()===0?"dom–sáb":"seg–dom";}
+function weekStart(date){const d=new Date(date);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()-weekStartsOn()+7)%7));return d;}
+function setWeekStartsOn(v){settings.weekStartsOn=+v===1?1:0;saveAll();renderStats();}
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
 function logsBetween(a,b){return logs.filter(l=>{const t=new Date(l.date);return t>=a&&t<b;});}
 function fmtKg(n){return (Math.round(n*10)/10).toString().replace(".",",");}
@@ -1967,14 +1958,13 @@ function safeRun(fn){try{fn();}catch(e){console.warn("painel:",e);}}
 
 function renderStats(){
   if(!$("ovBody"))return;
-  [renderOverview,renderMuscleWeek,renderPRs,renderStalled,renderBodyCard].forEach(safeRun);
+  [renderOverview,renderCalendar,renderMuscleWeek,renderPRs,renderStalled,renderAchievements,renderNumbers,renderBodyCard].forEach(safeRun);
 }
 function weeklyGoal(){const g=+settings.weeklyGoal;return g>=1&&g<=7?g:3;}
 function setWeeklyGoal(v){settings.weeklyGoal=+v;saveAll();renderOverview();}
+function trainedDayMap(){const m={};logs.forEach(l=>{const k=dayKey(l.date);(m[k]=m[k]||[]).push(l);});return m;}
 function renderOverview(){
-  const now=new Date(),goal=weeklyGoal();
-  const dayMap={};
-  logs.forEach(l=>{(dayMap[dayKey(l.date)]=dayMap[dayKey(l.date)]||[]).push(l.name);});
+  const now=new Date(),goal=weeklyGoal(),dayMap=trainedDayMap();
   const trainedDays=(ws)=>{let n=0;for(let i=0;i<7;i++)if(dayMap[dayKey(addDays(ws,i))])n++;return n;};
   const ws=weekStart(now),thisWeek=trainedDays(ws);
   // sequência de semanas cumprindo a meta (a semana atual só conta se já bateu a meta)
@@ -1986,19 +1976,12 @@ function renderOverview(){
   let volTxt="—",volCls="";
   if(vPrev>0){const pct=(v7-vPrev)/vPrev*100;volTxt=(pct>0?"+":"")+pct.toFixed(0)+"%";volCls=pct>0?"pos":pct<0?"neg":"";}
   const pctGoal=Math.min(100,thisWeek/goal*100);
-  // calendário das últimas 12 semanas (segunda → domingo, de cima pra baixo)
-  const start=addDays(ws,-7*11),todayK=dayKey(now);let cells="";
-  for(let i=0;i<84;i++){
-    const d=addDays(start,i),k=dayKey(d),names=dayMap[k];
-    const cls=(names?"on ":"")+(d>now&&k!==todayK?"fut ":"")+(k===todayK?"today":"");
-    cells+=`<i class="${cls.trim()}" title="${d.toLocaleDateString("pt-BR")}${names?" — "+esc(names.join(", ")):""}"></i>`;
-  }
   $("ovBody").innerHTML=`
-    <div class="row between" style="align-items:center;gap:8px">
-      <span class="muted tiny">Meta de treinos por semana</span>
-      <select class="field-input" style="width:auto" onchange="setWeeklyGoal(this.value)">${[1,2,3,4,5,6,7].map(n=>`<option value="${n}"${n===goal?" selected":""}>${n}x</option>`).join("")}</select>
+    <div class="inline-fields" style="margin-top:0">
+      <label>Meta de treinos por semana<select class="field-input" onchange="setWeeklyGoal(this.value)">${[1,2,3,4,5,6,7].map(n=>`<option value="${n}"${n===goal?" selected":""}>${n}x</option>`).join("")}</select></label>
+      <label>A semana começa no(a)<select class="field-input" onchange="setWeekStartsOn(this.value)"><option value="0"${weekStartsOn()===0?" selected":""}>Domingo</option><option value="1"${weekStartsOn()===1?" selected":""}>Segunda</option></select></label>
     </div>
-    <div style="margin-top:10px"><b>Esta semana: ${thisWeek}/${goal}</b> <span class="muted tiny">(seg–dom)</span>
+    <div style="margin-top:12px"><b>Esta semana: ${thisWeek}/${goal}</b> <span class="muted tiny">(${weekRangeLabel()})</span>
       <div class="ov-bar"><span style="width:${pctGoal}%"></span></div></div>
     <div class="chart-stats">
       <div><span class="muted tiny">Sequência</span><br><b>${streak} sem.</b></div>
@@ -2006,9 +1989,65 @@ function renderOverview(){
       <div><span class="muted tiny">Volume 7 dias</span><br><b class="${volCls}">${volTxt}</b></div>
       <div><span class="muted tiny">Total no histórico</span><br><b>${logs.length}</b></div>
     </div>
-    <div class="hm" aria-label="Calendário de treinos das últimas 12 semanas">${cells}</div>
-    <p class="muted" style="font-size:11px;margin:8px 0 0">Últimas 12 semanas (cada linha é um dia da semana, de segunda a domingo). "Sequência" = semanas seguidas batendo a meta. Considera todas as academias.</p>`;
+    <p class="muted" style="font-size:11px;margin:8px 0 0">"Sequência" = semanas seguidas batendo a meta. Considera todas as academias.</p>`;
 }
+
+/* ---------- calendário mensal ---------- */
+const MONTHS_PT=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const WD_LETTERS=["D","S","T","Q","Q","S","S"];           // índice = getDay() (0 = domingo)
+let calMonth=null,calSel=null;
+function calInit(){if(!calMonth){const n=new Date();calMonth=new Date(n.getFullYear(),n.getMonth(),1);calSel=dayKey(n);}}
+function calNav(delta){
+  calInit();const n=new Date(),cur=new Date(n.getFullYear(),n.getMonth(),1);
+  const nm=new Date(calMonth.getFullYear(),calMonth.getMonth()+delta,1);
+  if(nm>cur)return;
+  calMonth=nm;calSel=null;renderCalendar();
+}
+function calToday(){const n=new Date();calMonth=new Date(n.getFullYear(),n.getMonth(),1);calSel=dayKey(n);renderCalendar();}
+function calSelect(k){calSel=k;renderCalendar();}
+function showSummaryByDate(iso){const l=logs.find(x=>x.date===iso);if(l)showSummary(l);}
+function renderCalendar(){
+  if(!$("calGrid"))return;
+  calInit();
+  const y=calMonth.getFullYear(),m=calMonth.getMonth(),wso=weekStartsOn();
+  const map=trainedDayMap(),todayK=dayKey(new Date());
+  const lead=(new Date(y,m,1).getDay()-wso+7)%7,days=new Date(y,m+1,0).getDate();
+  let html=[...Array(7)].map((_,i)=>{const w=(wso+i)%7;return `<span class="cal-wd${w===0?" sun":""}">${WD_LETTERS[w]}</span>`;}).join("");
+  for(let i=0;i<lead;i++)html+=`<span></span>`;
+  for(let d=1;d<=days;d++){
+    const dt=new Date(y,m,d),k=dayKey(dt),ls=map[k]||[];
+    const cls=["cal-day"];
+    if(dt.getDay()===0)cls.push("sun");if(ls.length)cls.push("on");if(k===todayK)cls.push("today");if(k===calSel)cls.push("sel");
+    html+=`<button type="button" class="${cls.join(" ")}" data-k="${k}" aria-label="${d} de ${MONTHS_PT[m]}${ls.length?`, ${ls.length} treino(s)`:""}">${d}${ls.length>1?`<sup>${ls.length}</sup>`:""}</button>`;
+  }
+  $("calGrid").innerHTML=html;
+  $("calTitle").textContent=`${MONTHS_PT[m]} ${y}`;
+  const n=new Date();$("calNext").disabled=(y===n.getFullYear()&&m===n.getMonth())||calMonth>new Date(n.getFullYear(),n.getMonth(),1);
+  // detalhe do dia selecionado
+  const dayEl=$("calDay");
+  if(calSel&&calSel.slice(0,7)===`${y}-${String(m+1).padStart(2,"0")}`){
+    const [yy,mm,dd]=calSel.split("-").map(Number),dt=new Date(yy,mm-1,dd),ls=map[calSel]||[];
+    const title=dt.toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+    dayEl.innerHTML=`<div style="margin-top:14px"><b>${esc(title.charAt(0).toUpperCase()+title.slice(1))}</b>`+(ls.length?ls.map(l=>{
+      const names=[...new Set(l.rows.map(r=>r.exercise))];
+      return `<div class="stall-item"><div class="row between"><b>${esc(l.name)}</b><span class="muted tiny">${new Date(l.date).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span></div>
+        <div class="row wrap" style="gap:6px;margin:4px 0">${l.gym?`<span class="badge">📍 ${esc(l.gym)}</span>`:""}${l.durationSec!=null?`<span class="badge">⏱ ${fmtDuration(l.durationSec)}</span>`:""}${l.rating?`<span class="badge">${"⭐".repeat(l.rating)}</span>`:""}</div>
+        <span class="muted tiny">${l.rows.length} séries · volume ${Math.round(sessionVolume(l)).toLocaleString("pt-BR")} ${esc(settings.unit)}</span>
+        <div class="muted tiny" style="margin-top:4px">${esc(names.join(" • "))}</div>
+        <button type="button" class="ghost" style="font-size:12px;padding:5px 10px;margin-top:8px" onclick="showSummaryByDate('${esc(l.date)}')">📊 Ver resumo</button></div>`;
+    }).join(""):`<p class="muted" style="margin:6px 0 0">${calSel>todayK?"Esse dia ainda não chegou.":"Nenhum treino registrado neste dia."}</p>`)+`</div>`;
+  }else dayEl.innerHTML="";
+  // números do mês
+  const a=new Date(y,m,1),b=new Date(y,m+1,1),ml=logsBetween(a,b);
+  const dset=new Set(ml.map(l=>dayKey(l.date)));
+  const sets=ml.reduce((x,l)=>x+l.rows.length,0),vol=ml.reduce((x,l)=>x+sessionVolume(l),0);
+  $("calMonthStats").innerHTML=`<div class="chart-stats" style="grid-template-columns:repeat(2,1fr)">
+    <div><span class="muted tiny">Treinos no mês</span><br><b>${ml.length}</b></div>
+    <div><span class="muted tiny">Dias treinados</span><br><b>${dset.size}</b></div>
+    <div><span class="muted tiny">Séries</span><br><b>${sets}</b></div>
+    <div><span class="muted tiny">Volume</span><br><b>${Math.round(vol).toLocaleString("pt-BR")} ${esc(settings.unit)}</b></div></div>`;
+}
+$("calGrid").addEventListener("click",e=>{const b=e.target.closest(".cal-day");if(b)calSelect(b.dataset.k);});
 
 function weekSetsTarget(){const t=+settings.weekSetsTarget;return t>=1&&t<=40?t:10;}
 function setWeekSetsTarget(v){settings.weekSetsTarget=+v;saveAll();renderMuscleWeek();}
@@ -2035,7 +2074,7 @@ function renderMuscleWeek(){
       <div class="ov-bar"><span style="width:${pct}%;background:${col}"></span><i class="tick" style="left:${tick}%"></i></div>
       <span style="text-align:right"><b>${n}</b> <span class="muted tiny">${st}${prev[g]!=null?` · ant. ${prev[g]}`:""}</span></span></div>`;
   }).join("");
-  $("muscleBody").innerHTML=sel+rows+`<p class="muted" style="font-size:11px;margin:10px 0 0">Conta as séries registradas nesta semana (seg–dom), no <b>músculo principal</b> de cada exercício — o trabalho secundário (ex.: tríceps no supino) não entra. A linha vertical é a referência escolhida; "ant." é a semana passada. É só um guia pessoal: ajuste ao seu plano.</p>`;
+  $("muscleBody").innerHTML=sel+rows+`<p class="muted" style="font-size:11px;margin:10px 0 0">Conta as séries registradas nesta semana (${weekRangeLabel()}), no <b>músculo principal</b> de cada exercício — o trabalho secundário (ex.: tríceps no supino) não entra. A linha vertical é a referência escolhida; "ant." é a semana passada. É só um guia pessoal: ajuste ao seu plano.</p>`;
 }
 
 function exerciseSessions(name){
@@ -2082,9 +2121,99 @@ function renderStalled(){
   if(!items.length){card.style.display="none";return;}
   items.sort((a,b)=>b.stuck-a.stuck);
   card.style.display="";
+  const deload=items.length>=2?`<p style="margin:10px 0 0"><b>💡 Sugestão:</b> com ${items.length} exercícios estagnados ao mesmo tempo, vale considerar uma semana de <b>deload</b> — mesmas faixas de repetição, mas com cerca de 10% menos de carga ou menos séries — e depois voltar a progredir.</p>`:"";
   $("stallBody").innerHTML=`<p class="muted" style="margin:0">Exercícios sem bater o melhor resultado há 3 ou mais sessões:</p>`
     +items.slice(0,5).map(x=>`<div class="stall-item"><b>${esc(x.name)}</b> — ${x.stuck} sessões desde o melhor (${fmtKg(x.best.top)} ${esc(settings.unit)} × ${x.best.reps}).</div>`).join("")
+    +deload
     +`<p class="muted" style="font-size:11px;margin:10px 0 0">Pode ser normal (semana de deload, fase de corte, treino mais pesado em outro exercício). Se não for, vale tentar: mudar a faixa de repetições, aumentar o descanso entre séries, revisar sono e alimentação, ou fazer uma semana mais leve antes de tentar de novo.</p>`;
+}
+
+function longestGoalStreak(){
+  if(!logs.length)return 0;
+  const map=trainedDayMap(),goal=weeklyGoal(),first=logs.reduce((a,l)=>l.date<a?l.date:a,logs[0].date),end=weekStart(new Date());
+  let best=0,run=0;
+  for(let w=weekStart(first);w<=end;w=addDays(w,7)){
+    let n=0;for(let i=0;i<7;i++)if(map[dayKey(addDays(w,i))])n++;
+    if(n>=goal){run++;best=Math.max(best,run);}else run=0;
+  }
+  return best;
+}
+function totalPRs(){
+  let n=0;
+  loggedLoadedExercises().forEach(name=>{let max=0;exerciseSessions(name).forEach((h,i)=>{if(i>0&&h.e1>max*1.005)n++;if(h.e1>max)max=h.e1;});});
+  return n;
+}
+function biggestGain(){
+  let best=0;
+  loggedLoadedExercises().forEach(name=>{const h=exerciseSessions(name);if(h.length>=2)best=Math.max(best,Math.max(...h.map(x=>x.top))-h[0].top);});
+  return best;
+}
+function maxGroupsInWeek(){
+  const weeks=new Set(logs.map(l=>dayKey(weekStart(l.date))));let best=0;
+  weeks.forEach(k=>{const a=new Date(k+"T00:00:00"),c=countSetsByGroup(a,addDays(a,7));best=Math.max(best,Object.keys(c).filter(g=>g!=="Outros").length);});
+  return best;
+}
+function fmtBig(n){return Math.round(n).toLocaleString("pt-BR");}
+function renderAchievements(){
+  const u=settings.unit||"kg";
+  const st={
+    n:logs.length,sets:logs.reduce((x,l)=>x+l.rows.length,0),vol:logs.reduce((x,l)=>x+sessionVolume(l),0),
+    time:logs.reduce((x,l)=>x+(l.durationSec||0),0)/3600,ex:new Set(logs.flatMap(l=>l.rows.map(r=>r.exercise))).size,
+    sessVol:Math.max(0,...logs.map(sessionVolume)),streak:longestGoalStreak(),prs:totalPRs(),gain:biggestGain(),groups:maxGroupsInWeek(),bw:bodyLog.length
+  };
+  const A=[
+    ["🎯","Primeiro treino","Registre 1 treino",st.n,1],
+    ["🔟","10 treinos","Complete 10 sessões",st.n,10],
+    ["🏅","50 treinos","Complete 50 sessões",st.n,50],
+    ["💯","100 treinos","Complete 100 sessões",st.n,100],
+    ["🔥","Consistência","4 semanas seguidas batendo a meta",st.streak,4],
+    ["🌋","Imparável","12 semanas seguidas batendo a meta",st.streak,12],
+    ["🏆","Primeiro recorde","Supere seu melhor em um exercício",st.prs,1],
+    ["⭐","Caçador de recordes","Acumule 10 recordes pessoais",st.prs,10],
+    ["📈","Evolução",`Suba 10 ${u} de carga em um exercício`,st.gain,10],
+    ["🏋️","Tonelada","1.000 de volume em uma sessão",st.sessVol,1000],
+    ["🦾","Volume acumulado","Some 100.000 de volume",st.vol,100000],
+    ["💪","500 séries","Registre 500 séries",st.sets,500],
+    ["🧩","Variedade","Treine 15 exercícios diferentes",st.ex,15],
+    ["🤸","Corpo inteiro","6 grupos musculares na mesma semana",st.groups,6],
+    ["⏱️","10 horas","Some 10 horas de treino",st.time,10],
+    ["⚖️","De olho no peso","Registre o peso 5 vezes",st.bw,5]
+  ];
+  const got=A.filter(a=>a[3]>=a[4]).length;
+  const items=[...A].sort((a,b)=>(b[3]>=b[4])-(a[3]>=a[4]));
+  $("achBody").innerHTML=`<p class="muted" style="margin:0"><b>${got}</b> de ${A.length} desbloqueadas</p>
+    <div class="ach-grid">${items.map(([ic,t,d,cur,tgt])=>{
+      const ok=cur>=tgt,pct=Math.min(100,cur/tgt*100);
+      return `<div class="ach ${ok?"got":"lock"}"><span class="ic">${ic}</span><b>${esc(t)}</b><span class="muted">${esc(d)}</span>
+        ${ok?`<div class="tiny" style="margin-top:6px;color:var(--accent)">✔ Conquistada</div>`:`<div class="ov-bar"><span style="width:${pct}%"></span></div><div class="muted tiny" style="margin-top:4px">${fmtBig(Math.min(cur,tgt))} / ${fmtBig(tgt)}</div>`}</div>`;
+    }).join("")}</div>`;
+}
+function renderNumbers(){
+  if(!logs.length){$("numBody").innerHTML=emptyState("🔢","Sem números ainda","Finalize um treino para ver suas estatísticas gerais.");return;}
+  const u=esc(settings.unit||"kg"),WD=["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+  const sets=logs.reduce((x,l)=>x+l.rows.length,0),vol=logs.reduce((x,l)=>x+sessionVolume(l),0);
+  const timed=logs.filter(l=>l.durationSec!=null),totalSec=timed.reduce((x,l)=>x+l.durationSec,0);
+  const wd=[0,0,0,0,0,0,0];logs.forEach(l=>wd[new Date(l.date).getDay()]++);
+  const favWd=wd.indexOf(Math.max(...wd));
+  const exCount={};logs.forEach(l=>l.rows.forEach(r=>{exCount[r.exercise]=(exCount[r.exercise]||0)+1;}));
+  const topEx=Object.entries(exCount).sort((a,b)=>b[1]-a[1])[0];
+  const gyms={};logs.forEach(l=>{if(l.gym)gyms[l.gym]=(gyms[l.gym]||0)+1;});
+  const topGym=Object.entries(gyms).sort((a,b)=>b[1]-a[1])[0];
+  const first=logs.reduce((a,l)=>l.date<a?l.date:a,logs[0].date);
+  const rated=logs.filter(l=>l.rating);
+  const rows=[
+    ["Treinos registrados",logs.length],
+    ["Séries registradas",fmtBig(sets)],
+    ["Volume total",`${fmtBig(vol)} ${u}`],
+    ["Tempo total treinando",timed.length?`${Math.floor(totalSec/3600)} h ${Math.round(totalSec%3600/60)} min`:"—"],
+    ["Duração média",timed.length?`${Math.round(totalSec/timed.length/60)} min`:"—"],
+    ["Dia da semana em que mais treina",`${WD[favWd]} (${wd[favWd]}x)`],
+    ["Exercício mais feito",topEx?`${esc(topEx[0])} (${topEx[1]} séries)`:"—"],
+    topGym?["Academia mais frequente",`${esc(topGym[0])} (${topGym[1]}x)`]:null,
+    rated.length?["Nota média dos treinos",`${(rated.reduce((x,l)=>x+l.rating,0)/rated.length).toFixed(1).replace(".",",")} ⭐`]:null,
+    ["Treinando desde",new Date(first).toLocaleDateString("pt-BR")]
+  ].filter(Boolean);
+  $("numBody").innerHTML=rows.map(([k,v])=>`<div class="pr-row"><span class="muted">${k}</span><b style="text-align:right">${v}</b></div>`).join("");
 }
 
 function renderBodyCard(){
@@ -2121,12 +2250,12 @@ function addBodyWeight(){
   bodyLog.push({date,kg:Math.round(kg*10)/10});
   bodyLog.sort((a,b)=>a.date.localeCompare(b.date));
   saveBodyLog();syncWeightSetting();
-  $("bwKg").value="";renderBodyCard();toast("Peso registrado.");
+  $("bwKg").value="";renderBodyCard();safeRun(renderAchievements);toast("Peso registrado.");
 }
 function removeBodyWeight(date){
   if(!confirm("Remover o registro de "+date.split("-").reverse().join("/")+"?"))return;
   bodyLog=bodyLog.filter(e=>e.date!==date);
-  saveBodyLog();syncWeightSetting();renderBodyCard();
+  saveBodyLog();syncWeightSetting();renderBodyCard();safeRun(renderAchievements);
 }
 
 function csvCell(v){const t=String(v??"");return /[;"\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;}
@@ -2202,21 +2331,6 @@ function applyAppearance(){
   $("platesInput").value=(settings.plates||[]).join(" ");
   $("weightKg").value=settings.weightKg||"";
   $("heightCm").value=settings.heightCm||"";
-  $("aiProvider").value=settings.aiProvider||"gemini";
-  $("aiKeyGemini").value=settings.aiKeyGemini||"";
-  const geminiModel=settings.aiModelGemini||"gemini-2.5-flash";
-  const knownGeminiModels=[...$("aiModelGemini").options].map(o=>o.value);
-  if(knownGeminiModels.includes(geminiModel)){
-    $("aiModelGemini").value=geminiModel;
-    $("aiModelGeminiCustom").style.display="none";
-  }else{
-    $("aiModelGemini").value="custom";
-    $("aiModelGeminiCustom").value=geminiModel;
-    $("aiModelGeminiCustom").style.display="block";
-  }
-  $("aiKeyAnthropic").value=settings.aiKeyAnthropic||"";
-  $("aiModelAnthropic").value=settings.aiModelAnthropic||"claude-sonnet-5";
-  onAiProviderChange();
   computeAndShowBmi();
   markThemeActive();
 }
@@ -2243,250 +2357,6 @@ function saveBodySettings(){
   saveAll();
   computeAndShowBmi();
   toast("Dados salvos.");
-}
-
-/* ---------- assistente de IA ---------- */
-function onAiProviderChange(){
-  const p=$("aiProvider").value;
-  $("aiGeminiFields").style.display=p==="gemini"?"block":"none";
-  $("aiAnthropicFields").style.display=p==="anthropic"?"block":"none";
-}
-function onGeminiModelChange(){
-  $("aiModelGeminiCustom").style.display=$("aiModelGemini").value==="custom"?"block":"none";
-}
-function saveAiSettings(){
-  settings.aiProvider=$("aiProvider").value;
-  settings.aiKeyGemini=$("aiKeyGemini").value.trim();
-  const geminiSel=$("aiModelGemini").value;
-  settings.aiModelGemini=geminiSel==="custom"?($("aiModelGeminiCustom").value.trim()||"gemini-2.5-flash"):geminiSel;
-  settings.aiKeyAnthropic=$("aiKeyAnthropic").value.trim();
-  settings.aiModelAnthropic=$("aiModelAnthropic").value;
-  saveAll();
-  toast("Configuração da IA salva.");
-}
-let aiChat=JSON.parse(localStorage.getItem("lvt_ai_chat")||"[]");
-let aiPendingImage=null;
-
-function escMultiline(s){return esc(s).replace(/\n/g,"<br>");}
-function renderAiMessages(){
-  const box=$("aiMessages");
-  box.innerHTML=aiChat.length?aiChat.map(m=>`
-    <div class="ai-msg ai-${m.role==="user"?"user":"assistant"}">
-      ${m.image?`<img class="ai-msg-img" src="data:${m.image.media_type};base64,${m.image.data}">`:""}
-      <div class="ai-msg-text">${escMultiline(m.text)}</div>
-    </div>`).join(""):`<p class="muted" style="padding:10px 2px">Pergunte algo como "monta um treino de push focado em ombro" ou envie uma foto para receber feedback sobre seu físico.</p>`;
-  box.scrollTop=box.scrollHeight;
-}
-function saveAiChat(){localStorage.setItem("lvt_ai_chat",JSON.stringify(aiChat.slice(-40)));}
-function clearAiChat(){
-  if(!confirm("Apagar toda a conversa com o assistente?"))return;
-  aiChat=[];saveAiChat();renderAiMessages();
-}
-function resizeImageFile(file,maxDim,quality){
-  maxDim=maxDim||900;quality=quality||0.72;
-  return new Promise((resolve,reject)=>{
-    const img=new Image();
-    const url=URL.createObjectURL(file);
-    img.onload=()=>{
-      let w=img.width,h=img.height;
-      if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}
-      else if(h>=w&&h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}
-      const canvas=document.createElement("canvas");
-      canvas.width=w;canvas.height=h;
-      canvas.getContext("2d").drawImage(img,0,0,w,h);
-      URL.revokeObjectURL(url);
-      const dataUrl=canvas.toDataURL("image/jpeg",quality);
-      resolve({media_type:"image/jpeg",data:dataUrl.split(",")[1]});
-    };
-    img.onerror=reject;
-    img.src=url;
-  });
-}
-async function onAiFileChosen(){
-  const file=$("aiFileInput").files[0];
-  if(!file)return;
-  try{
-    const resized=await resizeImageFile(file);
-    aiPendingImage=resized;
-    $("aiImagePreview").style.display="flex";
-    $("aiImagePreview").innerHTML=`<img src="data:${resized.media_type};base64,${resized.data}"><button type="button" onclick="clearAiImage()">✕ remover foto</button>`;
-  }catch(e){
-    toast("Não consegui processar essa imagem.");
-  }
-}
-function clearAiImage(){
-  aiPendingImage=null;
-  $("aiFileInput").value="";
-  $("aiImagePreview").style.display="none";
-  $("aiImagePreview").innerHTML="";
-}
-function buildAiSystemPrompt(){
-  const planSummary=plan.map(x=>`${x.label}: ${x.rest?"descanso":x.ex.map(e=>e[0]).join(", ")}`).join(" | ");
-  let bodyLine="";
-  if(settings.weightKg&&settings.heightCm){
-    const bmi=settings.weightKg/((settings.heightCm/100)**2);
-    bodyLine=`Peso: ${settings.weightKg}kg, altura: ${settings.heightCm}cm, IMC aproximado: ${bmi.toFixed(1)}.`;
-  }
-  const recentLogs=logs.slice(0,6).map(l=>`${new Date(l.date).toLocaleDateString("pt-BR")}${l.gym?` (${l.gym})`:""}${l.rating?` [nota ${l.rating}/5]`:""} — ${l.name}: ${l.rows.slice(0,4).map(r=>`${r.exercise} ${r.kg}${settings.unit}x${r.reps}`).join("; ")}`).join("\n");
-  return `Você é um assistente de treino de musculação dentro do app pessoal "Low Volume Tracker", conversando diretamente com o dono do app. Seja direto, prático e baseado em evidências de treinamento de força. Responda em português do Brasil, de forma objetiva.
-Plano de treino atual do usuário: ${planSummary||"nenhum dia cadastrado"}.
-${bodyLine}
-Sessões recentes registradas:
-${recentLogs||"Nenhum histórico ainda."}
-Se o usuário enviar uma foto do próprio físico, dê uma avaliação honesta e construtiva focada em treino: postura visível, grupos musculares aparentemente mais e menos desenvolvidos, e sugestões de ênfase no treino. Nunca comente sobre atratividade ou faça observações que não sejam sobre treino/postura/desenvolvimento muscular. Deixe claro que sua avaliação é apenas uma referência visual e não substitui avaliação presencial de um educador físico, fisioterapeuta ou médico. Se a imagem não mostrar claramente o físico da pessoa para fins de treino, peça uma foto mais clara em vez de arriscar um palpite.`;
-}
-async function callAnthropic(turns,systemPrompt){
-  const messages=turns.map(m=>{
-    if(m.image)return {role:m.role,content:[{type:"image",source:{type:"base64",media_type:m.image.media_type,data:m.image.data}},{type:"text",text:m.text}]};
-    return {role:m.role,content:m.text};
-  });
-  const resp=await fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST",
-    headers:{
-      "content-type":"application/json",
-      "x-api-key":settings.aiKeyAnthropic,
-      "anthropic-version":"2023-06-01",
-      "anthropic-dangerous-direct-browser-access":"true"
-    },
-    body:JSON.stringify({
-      model:settings.aiModelAnthropic||"claude-sonnet-5",
-      max_tokens:1024,
-      system:systemPrompt,
-      messages
-    })
-  });
-  const data=await resp.json();
-  if(!resp.ok)return {ok:false,text:(data&&data.error&&data.error.message)||`Erro ${resp.status}`};
-  const textOut=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n")||"(sem resposta)";
-  return {ok:true,text:textOut};
-}
-function isModelUnavailableError(msg){
-  msg=(msg||"").toLowerCase();
-  return msg.includes("no longer available")||msg.includes("not found for api")||msg.includes("not supported for generatecontent")||msg.includes("is not found");
-}
-async function fetchGeminiModels(key){
-  try{
-    const resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models",{headers:{"x-goog-api-key":key}});
-    const data=await resp.json();
-    if(!resp.ok)return {ok:false,error:(data&&data.error&&data.error.message)||`Erro ${resp.status}`};
-    const models=(data.models||[])
-      .filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent"))
-      .map(m=>(m.name||"").replace(/^models\//,""))
-      .filter(Boolean);
-    return {ok:true,models};
-  }catch(e){
-    return {ok:false,error:"Não consegui conectar à API do Google. Verifique sua internet."};
-  }
-}
-function sortGeminiModels(models){
-  return [...models].sort((a,b)=>{
-    const af=a.includes("flash")?0:1,bf=b.includes("flash")?0:1;
-    if(af!==bf)return af-bf;
-    return a.localeCompare(b);
-  });
-}
-function populateGeminiModelSelect(models,preferred){
-  const sel=$("aiModelGemini");
-  const sorted=sortGeminiModels(models);
-  sel.innerHTML=sorted.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join("")+`<option value="custom">Outro (digitar o nome do modelo)</option>`;
-  const pick=sorted.includes(preferred)?preferred:sorted[0];
-  if(pick)sel.value=pick;
-  $("aiModelGeminiCustom").style.display="none";
-}
-async function testGeminiKey(){
-  const key=$("aiKeyGemini").value.trim();
-  if(!key){toast("Cole a chave do Gemini primeiro.");return;}
-  const btn=$("testGeminiBtn");
-  const oldLabel=btn.textContent;
-  btn.disabled=true;btn.textContent="Testando...";
-  $("aiTestResult").innerHTML="";
-  const r=await fetchGeminiModels(key);
-  if(!r.ok){
-    $("aiTestResult").innerHTML=`<span style="color:var(--danger)">❌ ${esc(r.error)}</span><br>Confira se colou a chave inteira e se ela foi criada em aistudio.google.com/apikey.`;
-  }else if(!r.models.length){
-    $("aiTestResult").innerHTML=`<span style="color:var(--danger)">❌ A chave é válida, mas nenhum modelo de conversa está disponível para ela.</span><br>Isso costuma significar que a chave foi criada por um caminho diferente do Google AI Studio (ex.: direto no Google Cloud Console, sem a API habilitada).`;
-  }else{
-    populateGeminiModelSelect(r.models,settings.aiModelGemini);
-    settings.aiModelGemini=$("aiModelGemini").value;
-    saveAll();
-    $("aiTestResult").innerHTML=`<span style="color:var(--success)">✅ Chave válida! ${r.models.length} modelo(s) disponível(is) — selecionei "${esc(settings.aiModelGemini)}" para você.</span>`;
-  }
-  btn.disabled=false;btn.textContent=oldLabel;
-}
-async function callGeminiOnce(model,contents,systemPrompt){
-  const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
-    method:"POST",
-    headers:{"content-type":"application/json","x-goog-api-key":settings.aiKeyGemini},
-    body:JSON.stringify({system_instruction:{parts:[{text:systemPrompt}]},contents})
-  });
-  const data=await resp.json();
-  if(!resp.ok)return {ok:false,text:(data&&data.error&&data.error.message)||`Erro ${resp.status}`};
-  const cand=data.candidates&&data.candidates[0];
-  const text=cand&&cand.content&&cand.content.parts?cand.content.parts.filter(p=>p.text).map(p=>p.text).join("\n"):"(sem resposta — talvez o Gemini tenha recusado a resposta por segurança; tente reformular)";
-  return {ok:true,text};
-}
-async function callGemini(turns,systemPrompt){
-  const contents=turns.map(m=>{
-    const parts=[];
-    if(m.image)parts.push({inline_data:{mime_type:m.image.media_type,data:m.image.data}});
-    parts.push({text:m.text});
-    return {role:m.role==="assistant"?"model":"user",parts};
-  });
-  const firstModel=settings.aiModelGemini||"gemini-2.5-flash";
-  let result=await callGeminiOnce(firstModel,contents,systemPrompt);
-  if(result.ok)return result;
-  if(!isModelUnavailableError(result.text))return result;
-
-  // o modelo configurado sumiu: pergunta pro Google quais modelos essa chave
-  // realmente pode usar agora, em vez de continuar chutando nomes fixos
-  const listing=await fetchGeminiModels(settings.aiKeyGemini);
-  if(!listing.ok||!listing.models.length)return result;
-  for(const model of sortGeminiModels(listing.models)){
-    if(model===firstModel)continue;
-    const r2=await callGeminiOnce(model,contents,systemPrompt);
-    if(r2.ok){
-      settings.aiModelGemini=model;
-      saveAll();
-      applyAppearance();
-      return r2;
-    }
-    if(!isModelUnavailableError(r2.text))return r2;
-  }
-  return result;
-}
-async function sendAiMessage(){
-  const text=$("aiInput").value.trim();
-  if(!text&&!aiPendingImage)return;
-  const provider=settings.aiProvider||"gemini";
-  const hasKey=provider==="gemini"?!!settings.aiKeyGemini:!!settings.aiKeyAnthropic;
-  if(!hasKey){toast("Adicione sua chave de API em Configurações.");showView("config");return;}
-
-  const imageForRequest=aiPendingImage;
-  aiChat.push({role:"user",text:text||"(foto enviada)",image:imageForRequest});
-  $("aiInput").value="";
-  $("aiInput").style.height="auto";
-  clearAiImage();
-  renderAiMessages();
-  saveAiChat();
-
-  aiChat.push({role:"assistant",text:"…"});
-  renderAiMessages();
-  $("aiSendBtn").disabled=true;
-
-  const systemPrompt=buildAiSystemPrompt();
-  const turns=aiChat.slice(0,-1).slice(-10);
-
-  try{
-    const result=provider==="gemini"?await callGemini(turns,systemPrompt):await callAnthropic(turns,systemPrompt);
-    aiChat.pop();
-    aiChat.push({role:"assistant",text:result.ok?result.text:`Não consegui falar com a IA: ${result.text}`});
-  }catch(e){
-    aiChat.pop();
-    aiChat.push({role:"assistant",text:"Não consegui conectar à API. Verifique sua internet e sua chave em Configurações."});
-  }
-  $("aiSendBtn").disabled=false;
-  renderAiMessages();
-  saveAiChat();
 }
 
 /* ---------- delegação de eventos ---------- */
@@ -2685,24 +2555,11 @@ document.querySelector(".timer-presets").addEventListener("click",e=>{
 $("autoTimerCheck").checked=!!settings.autoTimer;
 $("timerDisplay").textContent=formatTime(timerDuration);
 
-$("aiFileInput").addEventListener("change",onAiFileChosen);
-$("aiInput").addEventListener("keydown",e=>{
-  if(e.key==="Enter"&&!e.shiftKey){
-    e.preventDefault();
-    sendAiMessage();
-  }
-});
-$("aiInput").addEventListener("input",function(){
-  this.style.height="auto";
-  this.style.height=Math.min(120,this.scrollHeight)+"px";
-});
-
 applyAppearance();
 renderDayRail();
 renderTreino();
 renderHistory();
 renderLibrary();
-renderAiMessages();
 renderBackupCard();
 setTimeout(backupAutoCheck,1500);
 

@@ -1,11 +1,19 @@
+## Assistente de IA removido
+
+A aba **IA** (chat com Gemini/Anthropic, com chave de API própria) foi **removida** do app, junto com as configurações dela. Ao abrir esta versão, as chaves e a conversa antigas são apagadas do aparelho. O que continua: **Importar treino por arquivo**, em que você gera o plano em qualquer IA externa (botão "Copiar instruções para outra IA") e importa o arquivo aqui. As seções antigas deste README que falam do assistente (changelogs e ideias) descrevem versões anteriores.
+
 ## Painel do Histórico (novo)
 
 Na aba **Histórico**, acima da lista de sessões:
 
-- **Visão geral:** meta de treinos por semana (editável), sequência de semanas batendo a meta, treinos em 30 dias, variação do volume em 7 dias e calendário das últimas 12 semanas. Botão para **exportar o histórico em CSV** (abre no Excel/Planilhas).
+- **Visão geral:** meta de treinos por semana (editável), escolha de em que dia a semana começa (domingo ou segunda), sequência de semanas batendo a meta, treinos em 30 dias e variação do volume em 7 dias. Botão para **exportar o histórico em CSV** (abre no Excel/Planilhas).
+- **Calendário:** calendário mensal de verdade (D S T Q Q S S, domingo em vermelho). Dias com treino ficam marcados; toque em um dia para ver o treino, a academia, a duração, as séries e abrir o resumo. Navegue pelos meses com ‹ ›.
 - **Séries por músculo na semana:** conta as séries de cada grupo muscular (músculo principal do exercício) de segunda a domingo, com uma referência semanal editável e a comparação com a semana passada.
 - **Recordes pessoais:** maior carga de cada exercício (com as repetições) e 1RM estimado.
 - **Pedindo atenção:** exercícios que não batem o melhor resultado há 3+ sessões, com ideias do que tentar.
+- **Conquistas:** 16 conquistas com barra de progresso (treinos, sequência de semanas, recordes, evolução de carga, volume, variedade etc.).
+- **Em números:** totais do seu histórico (treinos, séries, volume, tempo, dia da semana favorito, exercício e academia mais frequentes).
+- **Pedindo atenção** também sugere um deload quando 2 ou mais exercícios estagnam juntos.
 - **Peso corporal:** registro com data, gráfico e variação em 30 dias. O registro mais recente atualiza o peso usado no IMC. Entra no backup (`lvt_bodylog`).
 
 ## Backup do progresso (novo)
@@ -14,7 +22,6 @@ Na aba **Histórico**, acima da lista de sessões:
 - **Trocar de celular**: abra o app no aparelho novo → *Restaurar de um arquivo* → escolha o backup. Os dados do aparelho são substituídos, e dá para **desfazer** logo depois.
 - **Backup automático 1x por semana**: roda sozinho na primeira vez que o app é aberto depois de 7 dias sem backup (navegadores não permitem salvar arquivos com o app fechado). O arquivo vai para a pasta Downloads. Pode ser desligado.
 - **Enviar / compartilhar**: manda o arquivo direto para o Google Drive, e-mail, WhatsApp etc. (onde o aparelho permitir).
-- As **chaves de IA não entram** no arquivo; ao restaurar, as chaves do aparelho atual são mantidas.
 
 ## Atualização visual e faixas de repetição
 
@@ -166,7 +173,7 @@ offline depois da primeira visita.
 - Registro de carga, repetições e RIR, com timer de descanso
 - Histórico de sessões + gráfico de evolução por exercício
 - Biblioteca com 150 exercícios, busca, execução e variações
-- Avaliação física (IMC) e assistente de IA (com sua própria chave de API)
+- Avaliação física (IMC)
 - Temas de cores e modo claro/escuro
 - Instalável (PWA) e funciona offline
 - Dados salvos no `localStorage` — sem conta, sem backend
@@ -193,86 +200,6 @@ Todos os arquivos ficam na raiz do repositório — isso importa porque o
 `manifest.json` e o `sw.js` usam caminhos relativos (`./`), o que é o que
 funciona corretamente no GitHub Pages, inclusive quando o site é publicado em
 um subcaminho como `https://usuario.github.io/repositorio/`.
-
-## Assistente de IA — como funciona e limitações
-
-O app **não tem servidor/backend**, então o assistente de IA não é um serviço
-pronto embutido — ele chama a API de IA **diretamente do seu navegador**,
-usando uma chave que você mesmo cria e cola em Configurações → Assistente de
-IA. Tem dois provedores para escolher:
-
-### Google Gemini — opção gratuita (recomendada)
-
-- Crie uma chave em [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-  — é grátis, não pede cartão de crédito. Veja o passo a passo detalhado mais
-  abaixo se tiver dúvida de como pegar essa chave.
-- O nível gratuito do Google AI Studio tem um limite generoso pra uso
-  pessoal (dezenas de mensagens por minuto, centenas por dia, dependendo do
-  modelo escolhido), mais do que suficiente pra conversar sobre treino e
-  mandar fotos ocasionalmente.
-- Entende texto e imagem (fotos do físico), então dá pra usar a função de
-  avaliação normalmente.
-
-### Como pegar a chave do Gemini, passo a passo
-
-1. Acesse [aistudio.google.com/apikey](https://aistudio.google.com/apikey) e
-   faça login com uma conta Google **pessoal** (não de escola/faculdade/
-   trabalho — contas assim costumam bloquear a criação de chave).
-2. Clique em "Create API key" (ou "Criar chave de API").
-3. Escolha "Create API key in new project" se for a primeira vez.
-4. Copie a chave gerada — ela começa com `AIza...`. Copie exatamente, sem
-   espaços no início/fim.
-5. Cole essa chave no app, em Configurações → Assistente de IA → campo
-   "Chave da API do Gemini".
-6. Clique no botão **"Testar chave e buscar modelos"** logo abaixo do campo.
-   Isso pergunta direto para o Google quais modelos a sua chave pode
-   realmente usar agora e já seleciona um funcional automaticamente — é mais
-   confiável do que confiar numa lista fixa, porque o Google muda os nomes
-   dos modelos com frequência (veja a seção abaixo).
-7. Se o teste der certo, clique em "💾 Salvar" e pronto.
-
-### Anthropic Claude — opção paga
-
-- Crie uma chave em [console.anthropic.com](https://console.anthropic.com/settings/keys).
-- Ganha uns créditos iniciais na criação da conta, mas eles expiram em
-  poucas semanas — depois disso é cobrado por uso, conforme a tabela de
-  preços da API (cobrança separada da assinatura do site claude.ai).
-- Pode valer a pena se você já tiver uma chave da Anthropic por outro
-  motivo, ou preferir a qualidade de resposta do Claude.
-
-### Vale para os dois provedores
-
-- A chave fica **só no `localStorage` do seu navegador** — não passa por
-  nenhum servidor além do provedor escolhido (Google ou Anthropic), e não
-  fica visível para outras pessoas que acessem o site publicado (cada
-  visitante usaria a própria chave).
-- Como a chave fica salva no navegador, **não publique prints com ela
-  visível** nem use isso em um computador compartilhado sem depois apagá-la
-  em Configurações.
-- Fotos enviadas ao assistente são redimensionadas no próprio navegador antes
-  de serem enviadas, para economizar dados e custo/cota.
-
-### Modelos do Google mudam de nome com muita frequência
-
-Isso já aconteceu duas vezes só durante o desenvolvimento deste app: o
-`gemini-2.0-flash` foi desativado, e depois até o `gemini-1.5-flash`
-(que era só um "fallback" para casos assim) também parou de funcionar. Por
-isso o app não confia mais numa lista fixa de nomes de modelo — em vez
-disso:
-
-- O botão **"Testar chave e buscar modelos"** em Configurações consulta a
-  API `ListModels` do próprio Google, que devolve exatamente quais modelos a
-  sua chave pode usar agora, e escolhe um automaticamente pra você.
-- Durante uma conversa, se o modelo configurado parar de responder porque foi
-  descontinuado, o app faz essa mesma consulta sozinho, em segundo plano,
-  troca para um modelo que ainda funciona e memoriza a escolha — sem
-  precisar voltar em Configurações.
-- Se quiser forçar um modelo específico manualmente, escolha "Outro" no
-  seletor de modelo do Gemini e digite o nome exato.
-
-Isso ainda não existe para a Anthropic (o Claude muda de nome com bem menos
-frequência), então se o modelo escolhido da Anthropic parar de funcionar, é
-preciso trocar manualmente no seletor.
 
 ## Como rodar localmente
 
@@ -374,8 +301,6 @@ sistema como alternativa.
 - JavaScript (gráficos em SVG nativo, sem biblioteca externa)
 - Web Storage API (`localStorage`)
 - Web App Manifest + Service Worker (PWA)
-- API do Google Gemini e/ou da Anthropic (Claude), chamada diretamente do
-  navegador com chave própria do usuário
 
 ## Ideias para próximas versões
 
