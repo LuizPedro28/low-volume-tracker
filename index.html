@@ -396,6 +396,17 @@ body:has(#summaryModal.open) .timer-widget{display:none}
   .day-edit-fields{grid-template-columns:1fr}
   .edit-grid{grid-template-columns:minmax(0,1fr) 54px 96px 36px}
 }
+
+#analise .field-input{width:100%;min-width:0;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);margin-top:5px}
+#analise label{font-size:12px;color:var(--muted)}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-top:10px}
+.metric{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px}
+.metric strong{display:block;font-size:22px;color:var(--accent)}
+.metric span{font-size:11px;color:var(--muted)}
+.insight-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.insight-bar{height:8px;border-radius:99px;background:var(--surface-3);overflow:hidden;margin-top:5px}
+.insight-bar i{display:block;height:100%;background:var(--accent)}
+@media(max-width:520px){.nav-tabs{gap:14px;overflow-x:auto}.nav-tabs button{white-space:nowrap}}
 </style>
 </head>
 <body>
@@ -417,6 +428,7 @@ body:has(#summaryModal.open) .timer-widget{display:none}
   <div class="nav-tabs">
     <button type="button" data-view="treino" class="active" onclick="showView('treino',this)">Treino</button>
     <button type="button" data-view="historico" onclick="showView('historico',this)">Histórico</button>
+    <button type="button" data-view="analise" onclick="showView('analise',this)">Análise</button>
     <button type="button" data-view="exercicios" onclick="showView('exercicios',this)">Exercícios</button>
     <button type="button" data-view="config" onclick="showView('config',this)">Config.</button>
   </div>
@@ -533,6 +545,30 @@ body:has(#summaryModal.open) .timer-widget{display:none}
   <input id="search" class="search-input" placeholder="Buscar por exercício ou músculo..." oninput="renderLibrary()">
   <div id="libCount" class="muted tiny" style="margin:10px 0 0"></div>
   <div id="lib"></div>
+</section>
+
+
+<section id="analise" class="view">
+<div class="hero"><h1>Central de desempenho</h1><p class="muted">Recuperação, evolução física e análise do treinamento — offline.</p></div>
+<div class="card"><h2>🧠 Check-in de recuperação</h2><p class="muted">Autorrelato de hoje; não é diagnóstico nem ordem para treinar.</p>
+<div class="grid-2">
+<label>Sono<select id="recSleep" class="field-input"><option value="5">5 — excelente</option><option value="4">4 — bom</option><option value="3" selected>3 — razoável</option><option value="2">2 — ruim</option><option value="1">1 — péssimo</option></select></label>
+<label>Disposição<select id="recEnergy" class="field-input"><option value="5">5 — excelente</option><option value="4">4 — boa</option><option value="3" selected>3 — normal</option><option value="2">2 — baixa</option><option value="1">1 — muito baixa</option></select></label>
+<label>Dor muscular<select id="recSoreness" class="field-input"><option value="1">1 — nenhuma</option><option value="2">2 — leve</option><option value="3" selected>3 — moderada</option><option value="4">4 — alta</option><option value="5">5 — muito alta</option></select></label>
+<label>Estresse<select id="recStress" class="field-input"><option value="1">1 — mínimo</option><option value="2">2 — baixo</option><option value="3" selected>3 — moderado</option><option value="4">4 — alto</option><option value="5">5 — muito alto</option></select></label></div>
+<label style="display:block;margin-top:10px">Observação<input id="recNote" class="field-input" placeholder="Ex.: noite mal dormida..."></label>
+<div class="actions"><button class="primary" onclick="saveRecovery()">Salvar check-in</button></div><div id="recoveryResult" class="info-item" style="margin-top:10px"></div></div>
+<div class="card"><h2>📈 Painel de evolução</h2><div id="coachPanel"></div></div>
+<div class="card"><h2>🔥 Estímulo por grupo muscular</h2><p class="muted">Estimativa baseada nos grupos da biblioteca; músculos secundários recebem peso parcial, não equivalência fisiológica exata.</p><div id="muscleMap"></div></div>
+<div class="card"><h2>📏 Medidas corporais</h2><div class="grid-2">
+<label>Peso (kg)<input id="measureWeight" class="field-input" type="number" step=".1" min="0"></label><label>Cintura (cm)<input id="measureWaist" class="field-input" type="number" step=".1" min="0"></label>
+<label>Peito (cm)<input id="measureChest" class="field-input" type="number" step=".1" min="0"></label><label>Braço (cm)<input id="measureArm" class="field-input" type="number" step=".1" min="0"></label>
+<label>Coxa (cm)<input id="measureThigh" class="field-input" type="number" step=".1" min="0"></label><label>Panturrilha (cm)<input id="measureCalf" class="field-input" type="number" step=".1" min="0"></label></div>
+<label style="display:block;margin-top:10px">Observação<input id="measureNote" class="field-input"></label>
+<div class="actions"><button class="primary" onclick="saveMeasurement()">Salvar medição</button><button onclick="exportInsightsCsv()">Exportar dados CSV</button></div><div id="measurementHistory"></div></div>
+<div class="card"><h2>🔁 Comparador de ciclos</h2><p class="muted">Últimos 30 dias versus 30 dias anteriores.</p><div id="cycleCompare"></div></div>
+<div class="card"><h2>🛠️ Substituição de exercícios</h2><p class="muted">Alternativas cadastradas na biblioteca. Ajuste carga e execução ao trocar.</p><input id="subSearch" class="search-input" placeholder="Buscar exercício..." oninput="renderSubstitutions()"><div id="subResults"></div></div>
+<div class="card"><h2>📋 Recomendações do Coach</h2><div id="coachAdvice"></div></div>
 </section>
 
 <section id="config" class="view">
@@ -1028,6 +1064,7 @@ function showView(id,btn){
   document.querySelectorAll(".nav-tabs button").forEach(b=>b.classList.remove("active"));
   if(btn)btn.classList.add("active");else document.querySelector(`.nav-tabs button[data-view="${id}"]`)?.classList.add("active");
   if(id==="historico")renderHistory();
+  if(id==="analise")renderInsights();
   if(id==="exercicios")renderLibrary();
   if(id==="config")markThemeActive();
   if(id==="config")renderBackupCard();
@@ -3348,6 +3385,68 @@ function installApp(){
     $("installBtn").style.display="none";
   });
 }
+
+/* Central de desempenho v6 — dados novos isolados para preservar versões anteriores */
+const INSIGHT_KEY="lvt_insights_v1";
+let insightData=(()=>{try{return Object.assign({recovery:[],measurements:[]},JSON.parse(localStorage.getItem(INSIGHT_KEY)||"{}"));}catch(e){return {recovery:[],measurements:[]};}})();
+function saveInsightData(){localStorage.setItem(INSIGHT_KEY,JSON.stringify(insightData));}
+function insightDate(){const d=new Date(),p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+function insightEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function recoveryScore(x){return Math.round((x.sleep+x.energy+6-x.soreness+6-x.stress)*5);}
+function saveRecovery(){
+ let x={date:insightDate(),sleep:+$("recSleep").value,energy:+$("recEnergy").value,soreness:+$("recSoreness").value,stress:+$("recStress").value,note:$("recNote").value.trim()};
+ insightData.recovery=insightData.recovery.filter(v=>v.date!==x.date);insightData.recovery.unshift(x);insightData.recovery=insightData.recovery.slice(0,90);saveInsightData();renderRecovery();toast("Check-in salvo.");
+}
+function renderRecovery(){
+ let x=insightData.recovery.find(v=>v.date===insightDate()),el=$("recoveryResult");if(!el)return;
+ if(!x){el.innerHTML="Ainda não há check-in registrado hoje.";return;}
+ ["sleep","energy","soreness","stress"].forEach(k=>$("rec"+k[0].toUpperCase()+k.slice(1)).value=x[k]);$("recNote").value=x.note||"";
+ let n=recoveryScore(x);el.innerHTML=`<b>${n}/100 — ${n>=80?"Boa prontidão autorrelatada":n>=60?"Prontidão intermediária":"Considere avaliar a exigência do treino"}</b><p class="muted" style="margin-top:5px">Indicador simples, não diagnóstico. Dor intensa, dor articular, doença ou piora persistente merecem atenção independentemente da pontuação.</p>`;
+}
+function saveMeasurement(){
+ let x={date:insightDate(),weight:+$("measureWeight").value||null,waist:+$("measureWaist").value||null,chest:+$("measureChest").value||null,arm:+$("measureArm").value||null,thigh:+$("measureThigh").value||null,calf:+$("measureCalf").value||null,note:$("measureNote").value.trim()};
+ if(!["weight","waist","chest","arm","thigh","calf"].some(k=>x[k]!=null)){toast("Informe pelo menos uma medida.");return;}
+ insightData.measurements.unshift(x);insightData.measurements=insightData.measurements.slice(0,365);saveInsightData();
+ ["measureWeight","measureWaist","measureChest","measureArm","measureThigh","measureCalf","measureNote"].forEach(id=>$(id).value="");renderMeasurements();toast("Medição salva.");
+}
+function renderMeasurements(){
+ let el=$("measurementHistory");if(!el)return;let rows=insightData.measurements.slice(0,12);
+ el.innerHTML=rows.length?rows.map(x=>`<div class="insight-row"><b>${new Date(x.date+"T12:00:00").toLocaleDateString("pt-BR")}</b><span>${["weight","waist","chest","arm","thigh","calf"].filter(k=>x[k]!=null).map(k=>({weight:"Peso",waist:"Cint.",chest:"Peito",arm:"Braço",thigh:"Coxa",calf:"Pant."}[k])+": "+x[k]+(k==="weight"?" kg":" cm")).join(" · ")}</span></div>`).join(""):"<p class='muted'>Nenhuma medição registrada.</p>";
+}
+function insightLogs(back=0){let end=Date.now()-back*864e5,start=end-30*864e5;return logs.filter(l=>Date.parse(l.date)>=start&&Date.parse(l.date)<end);}
+function renderCycleCompare(){
+ let a=insightLogs(0),b=insightLogs(30),vol=x=>x.reduce((n,l)=>n+sessionVolume(l),0),sets=x=>x.reduce((n,l)=>n+(l.rows||[]).length,0);
+ let vals=[["Treinos",a.length,b.length],["Séries registradas",sets(a),sets(b)],["Volume kg×reps",Math.round(vol(a)),Math.round(vol(b))]];
+ $("cycleCompare").innerHTML=vals.map(([n,c,p])=>`<div class="insight-row"><b>${n}</b><span>${c.toLocaleString("pt-BR")} <small class="muted">vs. ${p.toLocaleString("pt-BR")}</small> ${p?`<b class="${c>=p?"pos":"neg"}">${c>=p?"+":""}${((c-p)/p*100).toFixed(1)}%</b>`:""}</span></div>`).join("")+"<p class='muted tiny'>Períodos móveis. Volume não mede sozinho a qualidade do estímulo ou hipertrofia.</p>";
+}
+function renderMuscleMap(){
+ let since=Date.now()-7*864e5,tot={};logs.filter(l=>Date.parse(l.date)>=since).forEach(l=>(l.rows||[]).forEach(r=>{
+  let lib=LIB.find(x=>x[0]===r.exercise);if(!lib)return;String(lib[1]||"").split("•").map(x=>x.trim()).forEach((g,i)=>tot[g]=(tot[g]||0)+(i===0?1:.5));
+ }));
+ let arr=Object.entries(tot).sort((a,b)=>b[1]-a[1]),max=arr[0]?.[1]||1;
+ $("muscleMap").innerHTML=arr.length?arr.map(([g,n])=>`<div><div class="insight-row"><span>${insightEsc(g)}</span><b>${n.toFixed(1)} séries-equivalentes</b></div><div class="insight-bar"><i style="width:${n/max*100}%"></i></div></div>`).join(""):"<p class='muted'>Finalize treinos para visualizar a distribuição.</p>";
+}
+function renderCoach(){
+ let a=insightLogs(0),b=insightLogs(30),v=a.reduce((n,l)=>n+sessionVolume(l),0),pv=b.reduce((n,l)=>n+sessionVolume(l),0),names=[...new Set(a.flatMap(l=>(l.rows||[]).map(r=>r.exercise)))],stalls=[];
+ names.forEach(name=>{let ss=logs.filter(l=>(l.rows||[]).some(r=>r.exercise===name)).slice(0,3);if(ss.length===3){let best=ss.map(l=>Math.max(...l.rows.filter(r=>r.exercise===name).map(r=>r.kg*r.reps)));if(best.every((n,i)=>i===0||n<=best[i-1]))stalls.push(name);}});
+ let advice=[];if(!a.length)advice.push("Registre sessões para liberar análises.");
+ else {advice.push(`${a.length} treino(s) nos últimos 30 dias.`);if(pv)advice.push(`Volume kg×reps ${v>=pv?"subiu":"caiu"} ${Math.abs((v-pv)/pv*100).toFixed(1)}% versus os 30 dias anteriores.`);advice.push(stalls.length?"Possível estagnação para revisar: "+stalls.slice(0,4).join(", ")+". Confira técnica, amplitude, RIR, descanso e recuperação.":"Nenhum platô simples detectado nos exercícios recentes.");}
+ let rec=insightData.recovery[0];if(rec&&rec.date===insightDate())advice.push("Check-in de hoje: "+recoveryScore(rec)+"/100; interprete junto com sua percepção.");
+ $("coachPanel").innerHTML=`<div class="metric-grid"><div class="metric"><strong>${a.length}</strong><span>Treinos / 30 dias</span></div><div class="metric"><strong>${Math.round(v).toLocaleString("pt-BR")}</strong><span>Volume kg×reps</span></div><div class="metric"><strong>${a.reduce((n,l)=>n+(l.rows||[]).length,0)}</strong><span>Séries registradas</span></div></div><p class="muted tiny">Métricas de acompanhamento, não medidas diretas de hipertrofia.</p>`;
+ $("coachAdvice").innerHTML=advice.map(x=>`<div class="insight-row">• ${insightEsc(x)}</div>`).join("");
+}
+function renderSubstitutions(){
+ let q=($("subSearch")?.value||"").toLocaleLowerCase("pt-BR"),arr=LIB.filter(x=>x[0].toLocaleLowerCase("pt-BR").includes(q)).slice(0,12);
+ $("subResults").innerHTML=arr.length?arr.map(x=>`<div class="insight-row" style="display:block"><b>${insightEsc(x[0])}</b><div class="muted">${insightEsc(x[1])}</div><div>Alternativas: <b>${insightEsc([x[4],x[5]].filter(Boolean).join(" · ")||"Não cadastradas")}</b></div></div>`).join(""):"<p class='muted'>Nenhum exercício encontrado.</p>";
+}
+function exportInsightsCsv(){
+ let rows=[["tipo","data","peso","cintura","peito","braco","coxa","panturrilha","sono","disposicao","dor","estresse","observacao"]];
+ insightData.measurements.forEach(x=>rows.push(["medida",x.date,x.weight,x.waist,x.chest,x.arm,x.thigh,x.calf,"","","","",x.note]));
+ insightData.recovery.forEach(x=>rows.push(["recuperacao",x.date,"","","","","","",x.sleep,x.energy,x.soreness,x.stress,x.note]));
+ let csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\n"),a=document.createElement("a"),u=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.href=u;a.download="low-volume-dados.csv";a.click();URL.revokeObjectURL(u);
+}
+function renderInsights(){renderRecovery();renderCoach();renderMuscleMap();renderMeasurements();renderCycleCompare();renderSubstitutions();}
+
 </script>
 </body>
 </html>

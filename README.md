@@ -366,3 +366,15 @@ Na tela de treino, cada exercício possui o botão **Dane-se**. Ele permite regi
 - Um dia que contenha exercícios não será marcado como descanso, mesmo que o sinalizador antigo esteja inconsistente.
 - A progressão de repetições respeita a prioridade: faixa específica do exercício, faixa geral das configurações e, por último, faixa original.
 - Metas de repetições permanecem dentro dos limites mínimo e máximo configurados.
+
+
+## Versão 6 — Central de desempenho
+- Check-in diário de recuperação (sono, disposição, dor muscular e estresse).
+- Painel Coach com tendências dos últimos 30 dias e heurística de possível estagnação.
+- Distribuição semanal estimada por grupo muscular.
+- Registro de peso e medidas corporais.
+- Comparador dos últimos 30 dias com os 30 anteriores.
+- Consulta de alternativas da biblioteca.
+- Exportação CSV dos check-ins e medidas.
+
+Os novos dados ficam em `lvt_insights_v1`, isolados das chaves antigas para preservar compatibilidade. As análises são heurísticas e não substituem avaliação profissional.
